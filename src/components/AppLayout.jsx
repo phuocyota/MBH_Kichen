@@ -1,3 +1,4 @@
+import { useAuth } from '../auth/authContext'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -11,30 +12,9 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { CURRENT_STAFF_KEY, LOGIN_TOAST_KEY } from '../datas/loginData'
+import { LOGIN_TOAST_KEY } from '../datas/loginData'
 import { navigationItems, systemBrand } from '../datas/navigation'
 import logoImage from '../assets/Image/logo5.jpg'
-
-const defaultStaff = {
-  fullName: 'Nhân viên bếp',
-  role: 'Nhân viên bếp',
-  station: 'Bếp chính',
-}
-
-function getStoredStaff() {
-  const storedStaff = localStorage.getItem(CURRENT_STAFF_KEY)
-
-  if (!storedStaff) {
-    return defaultStaff
-  }
-
-  try {
-    return JSON.parse(storedStaff)
-  } catch {
-    localStorage.removeItem(CURRENT_STAFF_KEY)
-    return defaultStaff
-  }
-}
 
 function getLoginToast() {
   const message = sessionStorage.getItem(LOGIN_TOAST_KEY)
@@ -64,7 +44,8 @@ function AppLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
-  const [currentStaff] = useState(getStoredStaff)
+  const { session, logout } = useAuth()
+  const currentStaff = { ...session, role: session?.userType, station: session?.branchName || 'Chọn chi nhánh' }
   const [toastMessage, setToastMessage] = useState(getLoginToast)
   const [openGroups, setOpenGroups] = useState(() =>
     getInitialOpenGroups(location.pathname),
@@ -96,7 +77,7 @@ function AppLayout() {
   function handleLogout() {
     setShowLogoutDialog(false)
     setIsMobileSidebarOpen(false)
-    localStorage.removeItem(CURRENT_STAFF_KEY)
+    logout()
     navigate('/login')
   }
 

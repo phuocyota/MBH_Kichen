@@ -3,15 +3,14 @@ import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import backgroundImage from '../assets/Image/can-tin-so.png'
 import logoImage from '../assets/Image/logo5.jpg'
-import {
-  CURRENT_STAFF_KEY,
-  LOGIN_TOAST_KEY,
-  findKitchenStaffAccount,
-  getPublicStaffInfo,
-} from '../datas/loginData'
+import { LOGIN_TOAST_KEY } from '../datas/loginData'
+import { useAuth } from '../auth/authContext'
 
 function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
+  const [role, setRole] = useState('KITCHEN')
+  const [busy, setBusy] = useState(false)
   const [formValue, setFormValue] = useState({
     email: '',
     password: '',
@@ -29,27 +28,13 @@ function LoginPage() {
     setErrorMessage('')
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-
-    const account = findKitchenStaffAccount(
-      formValue.email,
-      formValue.password,
-    )
-
-    if (!account) {
-      setErrorMessage('Email hoặc mật khẩu không đúng.')
-      return
-    }
-
-    const currentStaff = getPublicStaffInfo(account)
-
-    localStorage.setItem(CURRENT_STAFF_KEY, JSON.stringify(currentStaff))
-    sessionStorage.setItem(
-      LOGIN_TOAST_KEY,
-      `Đăng nhập thành công. Xin chào ${currentStaff.fullName}!`,
-    )
-    navigate('/dashboard')
+    if(busy) return
+    setBusy(true);setErrorMessage('')
+    try { await login(formValue.email,formValue.password,role); sessionStorage.setItem(LOGIN_TOAST_KEY,'Đăng nhập thành công');navigate('/dashboard') }
+    catch(error) { setErrorMessage(error.message) }
+    finally {setBusy(false)}
   }
 
   return (
@@ -72,6 +57,7 @@ function LoginPage() {
         </div>
 
         <form className="mt-9 space-y-6" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-sm text-slate-700">Vai trò đăng nhập<select className="rounded border p-2" value={role} onChange={e=>setRole(e.target.value)}><option value="KITCHEN">Nhân viên bếp</option><option value="MANAGER">Quản lý / Quản trị</option></select></label>
           <div>
             <div className="flex items-center justify-center gap-2 border-b-2 border-blue-600 pb-2 text-sm font-semibold text-blue-600">
               <UserRound size={17} aria-hidden="true" />
@@ -87,6 +73,7 @@ function LoginPage() {
               name="email"
               onChange={handleChange}
               placeholder="Email nhân viên"
+              required
               type="email"
               value={formValue.email}
             />
@@ -100,6 +87,7 @@ function LoginPage() {
               name="password"
               onChange={handleChange}
               placeholder="Mật khẩu"
+              required
               type={showPassword ? 'text' : 'password'}
               value={formValue.password}
             />
@@ -134,6 +122,7 @@ function LoginPage() {
 
           <button
             className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+            disabled={busy}
             type="submit"
           >
             Đăng nhập

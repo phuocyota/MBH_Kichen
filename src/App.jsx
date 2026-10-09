@@ -1,48 +1,75 @@
 import { Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
-import CookingTrackingPage from './page/CookingTrackingPage'
-import DashboardPage from './page/DashboardPage'
-import KitchenMenuPage from './page/KitchenMenuPage'
-import KitchenPlanTodayPage from './page/KitchenPlanTodayPage'
 import LoginPage from './page/LoginPage'
-import {
-  MealExportPage,
-  MealHistoryPage,
-  MealImportPage,
-  MealInventoryPage,
-} from './page/MealFlowPages'
-import MealCancelPage from './page/MealCancelPage'
-import MealSampleHistoryPage from './page/MealSampleHistoryPage'
-import MealSampleManagePage from './page/MealSampleManagePage'
 import NotFoundPage from './page/NotFoundPage'
-import PlaceholderPage from './page/PlaceholderPage'
-import ReportsPage from './page/ReportsPage'
-import ShiftSummaryPage from './page/ShiftSummaryPage'
-
-function App() {
+import { ProtectedRoute } from './auth/AuthProvider'
+import { PortalContext } from './page/portal/PortalContext'
+import { DocumentPage } from './page/portal/DocumentPages'
+import {
+  BoardingPage,
+  CookingPage,
+  SummaryPage,
+} from './page/portal/OperationsPages'
+import { MaterialsPage, ConsumptionPage } from './page/portal/MaterialPages'
+import { ConfigurationPage } from './page/portal/ConfigurationPage'
+export default function App() {
   return (
     <Routes>
       <Route index element={<LoginPage />} />
       <Route path="login" element={<LoginPage />} />
-      <Route path="dashboard" element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="kitchen-plan/today" element={<KitchenPlanTodayPage />} />
-        <Route path="kitchen-plan/menu" element={<KitchenMenuPage />} />
-        <Route path="cooking/tracking" element={<CookingTrackingPage />} />
-        <Route path="meal-flow/import" element={<MealImportPage />} />
-        <Route path="meal-flow/export" element={<MealExportPage />} />
-        <Route path="inventory/remaining" element={<MealInventoryPage />} />
-        <Route path="meal-flow/history" element={<MealHistoryPage />} />
-        <Route path="samples/manage" element={<MealSampleManagePage />} />
-        <Route path="inventory/cancel" element={<MealCancelPage />} />
-        <Route path="samples/history" element={<MealSampleHistoryPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="shift/summary" element={<ShiftSummaryPage />} />
-        <Route path="*" element={<PlaceholderPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="dashboard" element={<AppLayout />}>
+          <Route element={<PortalContext />}>
+            <Route index element={<SummaryPage />} />
+            <Route
+              path="kitchen-plan/today"
+              element={<DocumentPage kind="manual-plans" />}
+            />
+            <Route path="kitchen-plan/boarding" element={<BoardingPage />} />
+            <Route
+              path="kitchen-plan/menu"
+              element={<DocumentPage kind="menus" />}
+            />
+            <Route path="cooking/tracking" element={<CookingPage />} />
+            <Route path="cooking/tickets" element={<CookingPage tickets />} />
+            <Route
+              path="meal-flow/import"
+              element={<DocumentPage kind="finished-imports" />}
+            />
+            <Route
+              path="meal-flow/export"
+              element={<DocumentPage kind="finished-exports" />}
+            />
+            <Route
+              path="inventory/remaining"
+              element={<DocumentPage kind="finished-inventory" />}
+            />
+            <Route path="meal-flow/history" element={<SummaryPage history />} />
+            <Route
+              path="samples/manage"
+              element={<DocumentPage kind="samples" />}
+            />
+            <Route
+              path="samples/history"
+              element={<DocumentPage kind="samples" historyOnly />}
+            />
+            <Route
+              path="inventory/cancel"
+              element={<DocumentPage kind="disposals" />}
+            />
+            <Route path="reports" element={<SummaryPage report />} />
+            <Route
+              path="shift/summary"
+              element={<DocumentPage kind="shift-closings" />}
+            />
+            <Route path="materials" element={<MaterialsPage />} />
+            <Route path="materials/lots" element={<MaterialsPage lotsOnly />} />
+            <Route path="materials/consumption" element={<ConsumptionPage />} />
+            <Route path="configuration" element={<ConfigurationPage />} />
+          </Route>
+        </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
-
-export default App

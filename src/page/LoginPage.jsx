@@ -3,7 +3,7 @@ import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import backgroundImage from '../assets/Image/can-tin-so.png'
 import logoImage from '../assets/Image/logo5.jpg'
-import { LOGIN_TOAST_KEY } from '../datas/loginData'
+import { LOGIN_TOAST_KEY } from '../auth/authContext'
 import { useAuth } from '../auth/authContext'
 
 function LoginPage() {

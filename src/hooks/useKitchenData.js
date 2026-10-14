@@ -92,12 +92,9 @@ export function useKitchenSocket() {
   const { session } = useAuth()
   useEffect(() => {
     if (!session?.branchId) return
-    const socket = io(
-      import.meta.env.VITE_SOCKET_URL ||
-        import.meta.env.VITE_API_BASE_URL ||
-        'http://localhost:3002',
-      { auth: { token: session.accessToken } },
-    )
+    const socket = io(import.meta.env.VITE_SOCKET_URL, {
+      auth: { token: session.accessToken },
+    })
     const refresh = () => window.dispatchEvent(new Event('kitchen:reload'))
     const events = [
       'connect',

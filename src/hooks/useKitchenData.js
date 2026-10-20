@@ -39,23 +39,24 @@ export function useKitchenData(resource, query = {}, enabled = true) {
     }
   }, [resource, key, branchId, enabled, scope])
   useEffect(() => {
+    if (!branchId || !enabled) return
     let disposed = false
     queueMicrotask(() => {
       if (!disposed) reload()
     })
-    const interval = setInterval(reload, 20000)
     window.addEventListener('kitchen:reload', reload)
     return () => {
       disposed = true
       active.current?.abort()
-      clearInterval(interval)
       window.removeEventListener('kitchen:reload', reload)
     }
-  }, [reload])
+  }, [reload, branchId, enabled])
   return {
-    data: result.scope === scope ? result.data : null,
-    error: result.scope === scope ? result.error : '',
-    loading: result.scope === scope ? result.loading : enabled,
+    data: enabled && result.scope === scope ? result.data : null,
+    error: enabled && result.scope === scope ? result.error : '',
+    loading:
+      Boolean(enabled && branchId) &&
+      (result.scope === scope ? result.loading : true),
     reload,
   }
 }
@@ -86,13 +87,16 @@ export function useKitchenChoices(resource, query = {}, enabled = true) {
       window.removeEventListener('kitchen:reload', reload)
     }
   }, [resource, key, branchId, scope, enabled])
-  return result.scope === scope ? result : { data: [] }
+  return enabled && result.scope === scope ? result : { data: [] }
 }
 export function useKitchenSocket() {
   const { session } = useAuth()
   useEffect(() => {
     if (!session?.branchId) return
-    const socket = io(import.meta.env.VITE_SOCKET_URL, {
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      new URL(import.meta.env.VITE_API_URL, window.location.origin).origin
+    const socket = io(socketUrl, {
       auth: { token: session.accessToken },
     })
     const refresh = () => window.dispatchEvent(new Event('kitchen:reload'))

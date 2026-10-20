@@ -54,7 +54,7 @@ src/
 ```
 
 ## Routing
-All routes defined in [App.jsx](src/App.jsx). Protected routes wrapped with `<ProtectedRoute />`.
+All routes defined in [App.jsx](../src/App.jsx). Protected routes wrapped with `<ProtectedRoute />`.
 
 **Route Groups:**
 - `/login` - Public login page
@@ -97,7 +97,7 @@ uploadImage(file)
 ## Key Components
 
 ### AppLayout
-Sidebar navigation + outlet for nested routes. Reads navigation from [navigation.js](src/datas/navigation.js).
+Sidebar navigation + outlet for nested routes. Reads navigation from [navigation.js](../src/datas/navigation.js).
 
 ### DocumentPages
 Generic CRUD for all document types via `kind` prop:

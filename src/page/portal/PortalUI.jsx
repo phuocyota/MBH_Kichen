@@ -230,7 +230,7 @@ export function Pagination({ data, query, setQuery }) {
     </div>
   )
 }
-export function Dialog({ title, onClose, onSubmit, children, initial }) {
+export function Dialog({ title, onClose, onSubmit, children, initial, submitActions }) {
   const [value, setValue] = useState(initial || {}),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false)
@@ -244,7 +244,10 @@ export function Dialog({ title, onClose, onSubmit, children, initial }) {
           if (busy) return
           setBusy(true)
           try {
-            await onSubmit({ ...value, requestId: requestId.current })
+            await onSubmit(
+              { ...value, requestId: requestId.current },
+              e.nativeEvent.submitter?.value || submitActions?.[0]?.value,
+            )
             onClose()
           } catch (err) {
             setError(
@@ -267,10 +270,22 @@ export function Dialog({ title, onClose, onSubmit, children, initial }) {
           <button disabled={busy} type="button" onClick={onClose}>
             Đóng
           </button>
-          <button disabled={busy} className={buttonClass}>
-            {' '}
-            {busy ? 'Đang gửi…' : 'Lưu'}
-          </button>
+          {submitActions ? submitActions.map((action) => (
+            <button
+              key={action.value}
+              type="submit"
+              value={action.value}
+              disabled={busy}
+              className={action.className || buttonClass}
+            >
+              {busy ? 'Đang xử lý…' : action.label}
+            </button>
+          )) : (
+            <button disabled={busy} className={buttonClass}>
+              {' '}
+              {busy ? 'Đang gửi…' : 'Lưu'}
+            </button>
+          )}
         </div>
       </form>
     </FormModal>

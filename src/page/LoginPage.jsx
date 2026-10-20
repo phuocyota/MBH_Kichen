@@ -9,7 +9,6 @@ import { useAuth } from '../auth/authContext'
 function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [role, setRole] = useState('KITCHEN')
   const [busy, setBusy] = useState(false)
   const [formValue, setFormValue] = useState({
     email: '',
@@ -32,7 +31,7 @@ function LoginPage() {
     event.preventDefault()
     if(busy) return
     setBusy(true);setErrorMessage('')
-    try { await login(formValue.email,formValue.password,role); sessionStorage.setItem(LOGIN_TOAST_KEY,'Đăng nhập thành công');navigate('/dashboard') }
+    try { await login(formValue.email,formValue.password,'KITCHEN'); sessionStorage.setItem(LOGIN_TOAST_KEY,'Đăng nhập thành công');navigate('/dashboard') }
     catch(error) { setErrorMessage(error.message) }
     finally {setBusy(false)}
   }
@@ -57,7 +56,6 @@ function LoginPage() {
         </div>
 
         <form className="mt-9 space-y-6" onSubmit={handleSubmit}>
-          <label className="grid gap-2 text-sm text-slate-700">Vai trò đăng nhập<select className="rounded border p-2" value={role} onChange={e=>setRole(e.target.value)}><option value="KITCHEN">Nhân viên bếp</option><option value="MANAGER">Quản lý / Quản trị</option></select></label>
           <div>
             <div className="flex items-center justify-center gap-2 border-b-2 border-blue-600 pb-2 text-sm font-semibold text-blue-600">
               <UserRound size={17} aria-hidden="true" />

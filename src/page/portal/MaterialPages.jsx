@@ -88,7 +88,6 @@ export function Allocations({
 }
 export function MaterialsPage({ lotsOnly = false }) {
   const { branchId, manager } = useAuth(),
-    catalog = useCatalog(),
     [query, setQuery] = useState({
       page: 1,
       size: 20,
@@ -97,12 +96,17 @@ export function MaterialsPage({ lotsOnly = false }) {
     [dialog, setDialog] = useState(null),
     [suppliers, setSuppliers] = useState([]),
     [supplierError, setSupplierError] = useState('')
+  const catalog = useCatalog(
+    manager && ['import', 'export'].includes(dialog?.mode)
+      ? ['products', ...(dialog.mode === 'import' ? ['units'] : [])]
+      : [],
+  )
   const state = useKitchenData(
     lotsOnly ? '/stock-lots' : '/inventory-items',
     query,
   )
   useEffect(() => {
-    if (!manager) return
+    if (!manager || dialog?.mode !== 'import') return
     const abort = new AbortController()
     allPages('/suppliers', { branchId }, abort.signal)
       .then(setSuppliers)
@@ -110,7 +114,7 @@ export function MaterialsPage({ lotsOnly = false }) {
         if (!abort.signal.aborted) setSupplierError(e.message)
       })
     return () => abort.abort()
-  }, [branchId, manager])
+  }, [branchId, manager, dialog?.mode])
   const products = catalog.products.filter((p) =>
     ['INGREDIENT', 'FUEL'].includes(p.productType),
   )
@@ -146,7 +150,7 @@ export function MaterialsPage({ lotsOnly = false }) {
   return (
     <PageFrame
       title={lotsOnly ? 'Lô nguyên/nhiên liệu' : 'Nguyên/nhiên liệu'}
-      description="Nhập từ nhà cung cấp, theo dõi tồn vật lý và chọn lô khi xuất."
+      description="Theo dõi tồn nguyên, nhiên liệu và hạn dùng để chế biến. Nhập/xuất từ nhà cung cấp do quản trị thực hiện."
       state={state}
       action={
         manager && (
@@ -202,7 +206,11 @@ export function MaterialsPage({ lotsOnly = false }) {
         columns={
           lotsOnly
             ? [
-                ['productId', 'Hàng', (r) => catalog.productName(r.productId)],
+                [
+                  'productId',
+                  'Hàng',
+                  (r) => r.product?.name || catalog.productName(r.productId),
+                ],
                 ['lotCode', 'Lô'],
                 ['quantity', 'Tồn vật lý'],
                 ['expiresAt', 'Hạn dùng'],
@@ -574,7 +582,7 @@ function LotOpening({ value = [], onChange, expiryRequired }) {
 }
 export function ConsumptionPage() {
   const { branchId, manager } = useAuth(),
-    catalog = useCatalog(),
+    catalog = useCatalog(['products', 'stations']),
     [query, setQuery] = useState({
       date: today(),
       mealPeriod: 'LUNCH',

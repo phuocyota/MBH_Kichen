@@ -48,6 +48,7 @@ export const api = {
 
 export async function allPages(resource, params, signal) {
   const first = await api.list(resource, { ...params, page: 1, size: 100 }, signal)
+  if (Array.isArray(first)) return first
   const list = Array.isArray(first?.data) ? first.data : []
   const total = Number(first?.total || list.length)
   const pageSize = 100

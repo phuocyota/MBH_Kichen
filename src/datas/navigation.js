@@ -1,4 +1,5 @@
 import {
+  QrCode,
   CalendarDays,
   ClipboardList,
   FileText,
@@ -12,6 +13,7 @@ export const navigationItems = [
   {label:'Kế hoạch bán trú',icon:CalendarDays,path:'/dashboard/kitchen-plan/boarding'},
   {label:'Đơn căn tin',icon:Utensils,path:'/dashboard/cooking/tickets'},
   {label:'Chốt ca',icon:FileText,path:'/dashboard/shift/summary'},
+  {label:'In tem / Mã QR',icon:QrCode,path:'/dashboard/barcode-print'},
   {label:'Cấu hình bếp',icon:CalendarDays,path:'/dashboard/configuration'},
   {
     label: 'Tổng quan',

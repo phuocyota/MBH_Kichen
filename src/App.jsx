@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import AppLayout from './components/AppLayout'
 import LoginPage from './page/LoginPage'
 import NotFoundPage from './page/NotFoundPage'
@@ -12,6 +13,7 @@ import {
 } from './page/portal/OperationsPages'
 import { MaterialsPage, ConsumptionPage } from './page/portal/MaterialPages'
 import { ConfigurationPage } from './page/portal/ConfigurationPage'
+const BarcodePrintPage = lazy(() => import('./page/print/BarcodePrintPage'))
 export default function App() {
   return (
     <Routes>
@@ -66,6 +68,14 @@ export default function App() {
             <Route path="materials/lots" element={<MaterialsPage lotsOnly />} />
             <Route path="materials/consumption" element={<ConsumptionPage />} />
             <Route path="configuration" element={<ConfigurationPage />} />
+            <Route
+              path="barcode-print"
+              element={
+                <Suspense fallback={<p role="status">Đang tải trang in tem…</p>}>
+                  <BarcodePrintPage />
+                </Suspense>
+              }
+            />
           </Route>
         </Route>
       </Route>

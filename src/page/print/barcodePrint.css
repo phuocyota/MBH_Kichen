@@ -1,0 +1,103 @@
+.barcode-label-list {
+  display: grid;
+  gap: 3mm;
+}
+
+.barcode-label-row {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, 35mm);
+  align-items: start;
+  gap: 0;
+  width: 70mm;
+  height: 22mm;
+  padding: 0;
+  background: #fff;
+}
+
+.barcode-label {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 22mm;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.2mm;
+  padding: 1mm;
+  color: #000;
+  background: #fff;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 400;
+  text-align: center;
+}
+
+.barcode-label-name {
+  width: 100%;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 2.5mm;
+  line-height: 3.5mm;
+}
+
+.barcode-label svg {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  shape-rendering: crispEdges;
+}
+
+.barcode-label-linear svg {
+  height: 7mm;
+}
+
+.barcode-label-linear .barcode-label-code,
+.barcode-label-linear .barcode-label-date {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qr-label-body {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5mm;
+  width: 100%;
+  min-height: 16mm;
+}
+
+.qr-label-info {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.barcode-label-code {
+  max-height: 6.8mm;
+  overflow: hidden;
+}
+
+.barcode-label-code,
+.barcode-label-date {
+  max-width: 100%;
+  flex: none;
+  font-size: 2.5mm;
+  line-height: 3.4mm;
+  overflow-wrap: anywhere;
+}
+
+.barcode-label-name,
+.barcode-label-code,
+.barcode-label-date {
+  color: #000;
+  -webkit-text-fill-color: #000;
+}
+
+

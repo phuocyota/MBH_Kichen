@@ -385,7 +385,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
             <>
               <p>
                 Nhiệm vụ đã được đánh dấu đang chế biến nhưng chưa có hồ sơ nhận
-                nguyên liệu. Tiếp nhận để chọn lô theo FEFO, ghi nhận chế biến
+                nguyên liệu. Tiếp nhận để xem gợi ý chọn lô, ghi nhận chế biến
                 và bàn giao thành phẩm.
               </p>
               <label className="flex items-start gap-3 text-sm font-semibold">
@@ -549,7 +549,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
                   )
                     ? "Làm trước phần đủ nguyên liệu"
                     : "Nhận đủ nguyên liệu"}{" "}
-                  · Chọn lô FEFO
+                  · Gợi ý chọn lô
                 </button>
                 <button
                   type="button"

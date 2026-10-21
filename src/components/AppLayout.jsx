@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { LOGIN_TOAST_KEY } from "../auth/authContext";
-import { navigationItems, systemBrand } from "../datas/navigation";
+import { isNavigationItemActive, navigationItems, systemBrand } from "../datas/navigation";
 import logoImage from "../assets/Image/logo5.jpg";
 
 function getLoginToast() {
@@ -68,7 +68,7 @@ function AppLayout() {
   const BrandIcon = systemBrand.icon;
   const currentPage = useMemo(() => {
     const parent = navigationItems.find((item) => {
-      if (item.path === location.pathname) {
+      if (isNavigationItemActive(item, location.pathname)) {
         return true;
       }
 
@@ -186,9 +186,11 @@ function AppLayout() {
             const isGroupOpen = Boolean(openGroups[item.label]);
 
             if (!hasChildren) {
+              const isActive = isNavigationItemActive(item, location.pathname);
               return (
-                <NavLink
-                  className={({ isActive }) =>
+                <Link
+                  aria-current={isActive ? "page" : undefined}
+                  className={
                     [
                       "group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition",
                       isActive
@@ -197,7 +199,6 @@ function AppLayout() {
                       isCollapsed ? "lg:justify-center" : "",
                     ].join(" ")
                   }
-                  end
                   key={item.label}
                   onClick={closeMobileSidebar}
                   to={item.path}
@@ -207,7 +208,7 @@ function AppLayout() {
                   <span className={isCollapsed ? "lg:hidden" : ""}>
                     {item.label}
                   </span>
-                </NavLink>
+                </Link>
               );
             }
 

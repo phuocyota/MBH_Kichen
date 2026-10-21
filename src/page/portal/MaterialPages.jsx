@@ -87,7 +87,7 @@ export function Allocations({
   )
 }
 export function MaterialsPage({ lotsOnly = false }) {
-  const { branchId, manager } = useAuth(),
+  const { branchId, manager, session } = useAuth(),
     [query, setQuery] = useState({
       page: 1,
       size: 20,
@@ -249,7 +249,7 @@ export function MaterialsPage({ lotsOnly = false }) {
         }
       />
       <Pagination data={state.data} query={query} setQuery={setQuery} />
-      {!lotsOnly && <WarehouseDocuments />}
+      {!lotsOnly && session?.userType === 'HEAD_CHEF' && <WarehouseDocuments />}
       {openingError && (
         <p role="alert" className="text-red-600">
           {openingError}

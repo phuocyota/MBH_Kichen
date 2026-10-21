@@ -176,6 +176,11 @@ function AppLayout() {
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
           {navigationItems.map((item) => {
+            if (
+              item.path === "/dashboard/reports" &&
+              session?.userType !== "HEAD_CHEF"
+            ) return null;
+
             const Icon = item.icon;
             const hasChildren = Boolean(item.children?.length);
             const isGroupOpen = Boolean(openGroups[item.label]);

@@ -15,6 +15,11 @@ import {
 } from './PortalUI'
 
 export function WarehouseDocuments() {
+  const { session } = useAuth()
+  return session?.userType === 'HEAD_CHEF' ? <WarehouseDocumentsContent /> : null
+}
+
+function WarehouseDocumentsContent() {
   const { branchId, manager } = useAuth()
   const [tab, setTab] = useState('IMPORT')
   const [query, setQuery] = useState({

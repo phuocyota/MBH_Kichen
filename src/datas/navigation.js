@@ -1,5 +1,6 @@
 import {
   QrCode,
+  BookOpen,
   CalendarDays,
   ClipboardList,
   FileText,
@@ -20,23 +21,25 @@ export const navigationItems = [
     path: '/dashboard',
     icon: Home,
   },
+  { label: 'Nhận việc & Chế biến', icon: ClipboardList, path: '/dashboard/kitchen/tasks' },
+  {
+    label: 'Thực đơn & Công thức',
+    icon: BookOpen,
+    children: [
+      { label: 'Danh mục món ăn', path: '/dashboard/menu/dishes' },
+      { label: 'Công thức & Định lượng', path: '/dashboard/menu/recipes' },
+      { label: 'Thực đơn theo ngày/tuần', path: '/dashboard/kitchen-plan/menu' },
+    ],
+  },
+  {label:'Nguyên/nhiên liệu',icon:ClipboardList,children:[{label:'Tồn nguyên/nhiên liệu',path:'/dashboard/materials'},{label:'Lô và hạn dùng',path:'/dashboard/materials/lots'},{label:'Nhu cầu / Tiêu hao',path:'/dashboard/materials/consumption'}]},
+  {label:'Kế hoạch bán trú',icon:CalendarDays,path:'/dashboard/kitchen-plan/boarding'},
+  {label:'Đơn căn tin',icon:Utensils,path:'/dashboard/cooking/tickets'},
   {
     label: 'Kế hoạch & Chế biến',
     icon: CalendarDays,
     children: [
       { label: 'Kế hoạch hôm nay', path: '/dashboard/kitchen-plan/today' },
-      { label: 'Thực đơn', path: '/dashboard/kitchen-plan/menu' },
       { label: 'Theo dõi chế biến', path: '/dashboard/cooking/tracking' },
-    ],
-  },
-  {
-    label: 'Nhập - Xuất & Tồn',
-    icon: ClipboardList,
-    children: [
-      { label: 'Nhập món', path: '/dashboard/meal-flow/import' },
-      { label: 'Xuất món', path: '/dashboard/meal-flow/export' },
-      { label: 'Món còn lại', path: '/dashboard/inventory/remaining' },
-      { label: 'Lịch sử', path: '/dashboard/meal-flow/history' },
     ],
   },
   {

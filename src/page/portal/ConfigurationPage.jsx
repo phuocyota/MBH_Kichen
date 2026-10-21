@@ -31,11 +31,23 @@ const names = {
 }
 export function ConfigurationPage() {
   const { branchId, manager, session } = useAuth(),
-    catalog = useCatalog(),
     [tab, setTab] = useState('products'),
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false)
+  const catalog = useCatalog(
+    manager
+      ? [
+          ...(['recipes', 'boardingMenu'].includes(tab) ||
+          dialog?.mode === 'mapping'
+            ? ['products']
+            : []),
+          ...(dialog && ['products', 'recipes'].includes(tab) ? ['units'] : []),
+          ...(dialog && tab === 'products' ? ['categories'] : []),
+          ...(dialog && tab === 'assignments' ? ['stations'] : []),
+        ]
+      : [],
+  )
   const [query, setQuery] = useState({ page: 1, size: 30 })
   const state = useKitchenData(
       resources[tab],
@@ -45,7 +57,7 @@ export function ConfigurationPage() {
     employees = useKitchenChoices(
       '/employees',
       {},
-      manager && tab === 'assignments',
+      manager && tab === 'assignments' && Boolean(dialog),
     )
   if (!manager)
     return <p role="alert">Chỉ quản lý được cấu hình hệ thống bếp.</p>
@@ -497,11 +509,11 @@ export function ConfigurationPage() {
                   </>
                 )}
                 <Field
-                  label="Ghi chú"
+                  label={tab === 'recipes' ? 'Mô tả thành phần (tối đa 500 ký tự)' : 'Ghi chú'}
                   required={false}
-                  value={v.note || v.description}
+                  value={tab === 'recipes' ? v.description : v.note || v.description}
                   onChange={(x) =>
-                    change(tab === 'stations' ? 'description' : 'note', x)
+                    change(['stations', 'recipes'].includes(tab) ? 'description' : 'note', x)
                   }
                 />
               </>

@@ -18,7 +18,7 @@ import {
 } from './PortalUI'
 
 const titles = {
-  menus: 'Thực đơn',
+  menus: 'Thực đơn theo ngày/tuần',
   'manual-plans': 'Kế hoạch thủ công',
   'finished-imports': 'Nhập món thành phẩm',
   'finished-exports': 'Xuất món',
@@ -39,19 +39,32 @@ const labels = {
   COMPLETED: 'Hoàn tất',
 }
 export function DocumentPage({ kind, historyOnly = false }) {
-  const { branchId, manager, session } = useAuth(),
-    catalog = useCatalog()
+  const { branchId, manager, session } = useAuth()
+  const menuEditor =
+    manager || (kind === 'menus' && ['KITCHEN', 'HEAD_CHEF'].includes(session.userType))
   const [query, setQuery] = useState(defaultQuery),
     [dialog, setDialog] = useState(null),
     [actionError, setActionError] = useState(''),
     [busy, setBusy] = useState(false)
+  const catalog = useCatalog([
+    ...(kind === 'shift-closings' ? [] : ['products']),
+    ...(dialog && kind === 'manual-plans' ? ['stations'] : []),
+  ])
   const resource = `/kitchen/${kind}`,
-    state = useKitchenData(resource, query)
-  const plans = useKitchenData('/kitchen/meal-plans', { date: query.date })
+    state = useKitchenData(
+      resource,
+      kind === 'menus' && query.from ? { ...query, date: undefined } : query,
+    )
+  const editing = ['create', 'edit'].includes(dialog?.mode)
+  const plans = useKitchenData(
+    '/kitchen/meal-plans',
+    { date: query.date },
+    editing && ['finished-imports', 'samples'].includes(kind),
+  )
   const inventory = useKitchenChoices(
     '/kitchen/finished-inventory',
     { date: query.date },
-    ['finished-exports', 'disposals'].includes(kind),
+    editing && ['finished-exports', 'disposals'].includes(kind),
   )
   const batches = (plans.data || []).flatMap((p) =>
     (p.batches || []).map((b) => ({
@@ -67,14 +80,13 @@ export function DocumentPage({ kind, historyOnly = false }) {
   const canCreate =
     !historyOnly &&
     !['finished-inventory'].includes(kind) &&
-    (!['menus', 'manual-plans'].includes(kind) || manager)
+    (!['menus', 'manual-plans'].includes(kind) || menuEditor)
   async function mutate(row, action, body = {}) {
     if (busy) return
     setBusy(true)
     setActionError('')
     try {
       await api.action(resource, row.id, action, { ...body, branchId })
-      await state.reload()
       window.dispatchEvent(new Event('kitchen:reload'))
     } catch (e) {
       setActionError(e.message)
@@ -142,10 +154,52 @@ export function DocumentPage({ kind, historyOnly = false }) {
         )
       }
     >
-      <Filters query={query} setQuery={setQuery} />
-      {inventory.error && (
+      {kind === 'menus' && (
+        <div className="flex gap-2">
+          <button
+            className={
+              !query.from ? buttonClass : 'rounded-lg border px-4 py-2'
+            }
+            onClick={() =>
+              setQuery((current) => ({
+                date: current.date,
+                shift: current.shift,
+                size: current.size,
+                page: 1,
+              }))
+            }
+          >
+            Theo ngày
+          </button>
+          <button
+            className={query.from ? buttonClass : 'rounded-lg border px-4 py-2'}
+            onClick={() => {
+              const start = new Date(`${query.date}T00:00:00Z`)
+              start.setUTCDate(
+                start.getUTCDate() - ((start.getUTCDay() + 6) % 7),
+              )
+              const from = start.toISOString().slice(0, 10)
+              start.setUTCDate(start.getUTCDate() + 6)
+              setQuery({
+                ...query,
+                from,
+                to: start.toISOString().slice(0, 10),
+                page: 1,
+              })
+            }}
+          >
+            Theo tuần / khoảng ngày
+          </button>
+        </div>
+      )}
+      <Filters
+        query={query}
+        setQuery={setQuery}
+        ranges={kind === 'menus' && Boolean(query.from)}
+      />
+      {(inventory.error || plans.error) && (
         <p role="alert" className="text-red-600">
-          {inventory.error}
+          {inventory.error || plans.error}
         </p>
       )}
       {actionError && (
@@ -165,7 +219,8 @@ export function DocumentPage({ kind, historyOnly = false }) {
                     ['menus', 'manual-plans', 'finished-imports'].includes(
                       kind,
                     ) &&
-                    (!['menus', 'manual-plans'].includes(kind) || manager) && (
+                    (!['menus', 'manual-plans'].includes(kind) ||
+                      menuEditor) && (
                       <ActionButton
                         disabled={busy}
                         onClick={() => open('edit', r)}
@@ -173,7 +228,7 @@ export function DocumentPage({ kind, historyOnly = false }) {
                         Sửa
                       </ActionButton>
                     )}
-                  {['menus', 'manual-plans'].includes(kind) && manager && (
+                  {['menus', 'manual-plans'].includes(kind) && menuEditor && (
                     <ActionButton
                       disabled={busy}
                       onClick={() => open('copy', r)}
@@ -181,7 +236,7 @@ export function DocumentPage({ kind, historyOnly = false }) {
                       Sao chép
                     </ActionButton>
                   )}
-                  {kind === 'menus' && manager && r.status === 'DRAFT' && (
+                  {kind === 'menus' && menuEditor && r.status === 'DRAFT' && (
                     <ActionButton
                       disabled={busy}
                       onClick={() => mutate(r, 'lock')}
@@ -348,7 +403,6 @@ export function DocumentPage({ kind, historyOnly = false }) {
                 })
               else await api.create(resource, value)
             }
-            await state.reload()
             window.dispatchEvent(new Event('kitchen:reload'))
           }}
         >

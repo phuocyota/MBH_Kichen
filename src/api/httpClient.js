@@ -31,7 +31,7 @@ export function readSession() {
   }
 }
 const httpClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002',
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 30000,
 })
 httpClient.interceptors.request.use((config) => {

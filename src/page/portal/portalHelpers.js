@@ -1,6 +1,29 @@
-import { createContext, useContext } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+} from 'react'
 export const CatalogContext = createContext(null)
-export const useCatalog = () => useContext(CatalogContext)
+export function useCatalog(keys = ['products']) {
+  const store = useContext(CatalogContext)
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot)
+  const key = [...new Set(keys)].sort().join(',')
+  useEffect(() => {
+    if (key) store.load(key.split(','))
+  }, [store, key, snapshot.version])
+  const products = snapshot.entries.products?.data || []
+  return {
+    products,
+    loading: keys.some((key) => !snapshot.entries[key] || snapshot.entries[key].loading),
+    error: keys.map((key) => snapshot.entries[key]?.error).find(Boolean) || '',
+    units: snapshot.entries.units?.data || [],
+    stations: snapshot.entries.stations?.data || [],
+    categories: snapshot.entries.categories?.data || [],
+    productName: (id) => products.find((p) => p.id === id)?.name || id,
+    refreshCatalog: store.invalidate,
+  }
+}
 export const today = () =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Bangkok',

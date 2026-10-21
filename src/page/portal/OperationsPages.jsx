@@ -1,5 +1,6 @@
 import { defaultQuery } from './portalHelpers'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/authContext'
 import { useCatalog, toInstant } from './portalHelpers'
 import { useKitchenData } from '../../hooks/useKitchenData'
@@ -19,7 +20,7 @@ import { localInput, summaryLabels } from './portalHelpers'
 
 export function CookingPage({ tickets = false }) {
   const { branchId } = useAuth(),
-    catalog = useCatalog(),
+    catalog = useCatalog(tickets ? [] : ['products']),
     [query, setQuery] = useState(defaultQuery),
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
@@ -411,8 +412,17 @@ export function SummaryPage({ report = false, history = false }) {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Object.entries(state.data || {}).map(([key, value]) => (
-              <div key={key} className="rounded-xl bg-white p-5 shadow-sm">
+            {Object.entries(state.data || {}).filter(([key]) =>
+              report || !['importedQuantity', 'exportedQuantity'].includes(key),
+            ).map(([key, value]) => {
+              const isTicketLink = key === 'ticketCounts'
+              const Card = isTicketLink ? Link : 'div'
+              return (
+              <Card
+                key={key}
+                {...(isTicketLink ? { to: '/dashboard/cooking/tickets' } : {})}
+                className={`rounded-xl bg-white p-5 shadow-sm${isTicketLink ? ' transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-blue-600' : ''}`}
+              >
                 <p className="text-sm text-slate-500">
                   {summaryLabels[key] || key}
                 </p>
@@ -421,8 +431,9 @@ export function SummaryPage({ report = false, history = false }) {
                     ? value.map((r) => `${r.status}: ${r.count}`).join(', ')
                     : value}
                 </p>
-              </div>
-            ))}
+              </Card>
+              )
+            })}
           </div>
           {manager && operations.data && (
             <div className="rounded-xl bg-white p-5">

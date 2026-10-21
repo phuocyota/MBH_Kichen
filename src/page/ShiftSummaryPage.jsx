@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import KitchenPlanFilters from '../components/KitchenPlan/KitchenPlanFilters'
 import KitchenPlanHeader from '../components/KitchenPlan/KitchenPlanHeader'
-import { CURRENT_STAFF_KEY } from '../datas/loginData'
+import { useAuth } from '../auth/authContext'
 import { kitchenShiftOptions } from '../datas/kitchenPlanData'
 import {
   buildShiftClosingReport,
@@ -30,26 +30,6 @@ import {
   getCurrentDateTime,
   getMealFlowState,
 } from './mealFlowUtils'
-
-function getCurrentStaff() {
-  const storedValue = localStorage.getItem(CURRENT_STAFF_KEY)
-
-  if (!storedValue) {
-    return {
-      fullName: 'Nhân viên bếp',
-      role: 'Nhân viên bếp',
-    }
-  }
-
-  try {
-    return JSON.parse(storedValue)
-  } catch {
-    return {
-      fullName: 'Nhân viên bếp',
-      role: 'Nhân viên bếp',
-    }
-  }
-}
 
 function ShiftReportTable({ report }) {
   const rows = [
@@ -141,10 +121,14 @@ function ShiftConfirmPanel({ closing, onApprove, onConfirm, onUnlock }) {
 }
 
 function ShiftSummaryPage() {
+  const { session } = useAuth()
   const [selectedDate, setSelectedDate] = useState(getCurrentDate)
   const [selectedShift, setSelectedShift] = useState(kitchenShiftOptions[1])
   const [shiftClosings, setShiftClosings] = useState(readStoredShiftClosings)
-  const currentStaff = getCurrentStaff()
+  const currentStaff = {
+    fullName: session?.fullName || 'Nhân viên bếp',
+    role: session?.userType === 'ADMIN' ? 'Quản lý' : session?.userType === 'MANAGER' ? 'Quản lý' : 'Nhân viên bếp',
+  }
   const state = getMealFlowState()
   const closing = findShiftClosing(selectedDate, selectedShift, shiftClosings)
   const report = useMemo(

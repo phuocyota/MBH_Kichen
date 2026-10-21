@@ -15,8 +15,12 @@ import {
 } from './PortalUI'
 
 export function WarehouseDocuments() {
+  const { session } = useAuth()
+  return session?.userType === 'HEAD_CHEF' ? <WarehouseDocumentsContent /> : null
+}
+
+function WarehouseDocumentsContent() {
   const { branchId, manager } = useAuth()
-  const catalog = useCatalog()
   const [tab, setTab] = useState('IMPORT')
   const [query, setQuery] = useState({
     page: 1,
@@ -24,6 +28,7 @@ export function WarehouseDocuments() {
     productType: 'INGREDIENT',
   })
   const [dialog, setDialog] = useState(null)
+  const catalog = useCatalog(manager && dialog ? ['products'] : [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const voucher = ['IMPORT', 'EXPORT'].includes(tab)
@@ -36,7 +41,11 @@ export function WarehouseDocuments() {
     ...query,
     receiptType: voucher ? tab : undefined,
   })
-  const branches = useKitchenChoices('/branches', {}, manager)
+  const branches = useKitchenChoices(
+    '/branches',
+    {},
+    manager && dialog?.mode === 'TRANSFER',
+  )
   const names = {
     IMPORT: 'Phiếu nhập',
     EXPORT: 'Phiếu xuất',

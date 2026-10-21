@@ -5,10 +5,12 @@ import LoginPage from './page/LoginPage'
 import NotFoundPage from './page/NotFoundPage'
 import { ProtectedRoute } from './auth/AuthProvider'
 import { PortalContext } from './page/portal/PortalContext'
+import StaffOverviewPage from './page/portal/StaffOverviewPage'
+import { DishesPage, RecipesPage } from './page/portal/MenuRecipePages'
+import TaskWorkflowPage from './page/portal/TaskWorkflowPage'
 import { DocumentPage } from './page/portal/DocumentPages'
 import {
   BoardingPage,
-  CookingPage,
   SummaryPage,
 } from './page/portal/OperationsPages'
 import { MaterialsPage, ConsumptionPage } from './page/portal/MaterialPages'
@@ -22,7 +24,10 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="dashboard" element={<AppLayout />}>
           <Route element={<PortalContext />}>
-            <Route index element={<SummaryPage />} />
+            <Route index element={<StaffOverviewPage />} />
+            <Route path="kitchen/tasks" element={<TaskWorkflowPage />} />
+            <Route path="menu/dishes" element={<DishesPage />} />
+            <Route path="menu/recipes" element={<RecipesPage />} />
             <Route
               path="kitchen-plan/today"
               element={<DocumentPage kind="manual-plans" />}
@@ -32,8 +37,8 @@ export default function App() {
               path="kitchen-plan/menu"
               element={<DocumentPage kind="menus" />}
             />
-            <Route path="cooking/tracking" element={<CookingPage />} />
-            <Route path="cooking/tickets" element={<CookingPage tickets />} />
+            <Route path="cooking/tracking" element={<TaskWorkflowPage preset="batch" />} />
+            <Route path="cooking/tickets" element={<TaskWorkflowPage preset="ticket" />} />
             <Route
               path="meal-flow/import"
               element={<DocumentPage kind="finished-imports" />}

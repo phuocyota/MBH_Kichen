@@ -1,28 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Outlet } from 'react-router-dom'
 import { allPages } from '../../api/kitchenApi'
 import { useAuth } from '../../auth/authContext'
-import { useKitchenSocket } from '../../hooks/useKitchenData'
 import { CatalogContext } from './portalHelpers'
+import { createCatalogStore } from '../../api/catalogStore'
 export function PortalContext() {
   const { session, branchId, selectBranch } = useAuth()
   const [branches, setBranches] = useState([]),
-    [result, setResult] = useState({}),
     [branchError, setBranchError] = useState(''),
     [revision, setRevision] = useState(0)
-  const scope = branchId
-  const catalog =
-    result.scope === scope
-      ? result.catalog || {
-          products: [],
-          units: [],
-          stations: [],
-          categories: [],
-        }
-      : { products: [], units: [], stations: [], categories: [] }
-  const error = branchError || (result.scope === scope ? result.error : '')
-  const loading = branchId && result.scope !== scope
-  useKitchenSocket()
+  const store = useMemo(() => {
+    const token = session.accessToken
+    return createCatalogStore((resource, signal) => {
+      if (!token) return Promise.resolve([])
+      return allPages(resource, { branchId }, signal)
+    })
+  }, [branchId, session.accessToken])
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot)
+  const error =
+    branchError ||
+    Object.values(snapshot.entries).find((entry) => entry.error)?.error
   useEffect(() => {
     if (session.userType !== 'ADMIN' || session.branchId) return
     const abort = new AbortController()
@@ -38,46 +35,9 @@ export function PortalContext() {
       })
     return () => abort.abort()
   }, [session.userType, session.branchId, revision])
-  useEffect(() => {
-    const refresh = () => setRevision((r) => r + 1)
-    window.addEventListener('kitchen:reload', refresh)
-    return () => window.removeEventListener('kitchen:reload', refresh)
-  }, [])
-  useEffect(() => {
-    if (!branchId) return
-    const abort = new AbortController()
-    Promise.all([
-      allPages('/products', { branchId }, abort.signal),
-      allPages('/kitchen/units', { branchId }, abort.signal),
-      allPages('/kitchen/stations', { branchId }, abort.signal),
-      allPages('/products/categories', { branchId }, abort.signal),
-    ])
-      .then(([products, units, stations, categories]) => {
-        if (!abort.signal.aborted) {
-          setResult({
-            scope,
-            catalog: { products, units, stations, categories },
-            error: '',
-          })
-        }
-      })
-      .catch((e) => {
-        if (!abort.signal.aborted)
-          setResult((r) => ({
-            scope,
-            catalog: r.scope === scope ? r.catalog : undefined,
-            error: e.message,
-          }))
-      })
-    return () => abort.abort()
-  }, [branchId, revision, scope])
-  const value = {
-    ...catalog,
-    productName: (id) => catalog.products.find((p) => p.id === id)?.name || id,
-    refreshCatalog: () => setRevision((r) => r + 1),
-  }
+  useEffect(() => () => store.abort(), [store])
   return (
-    <CatalogContext.Provider value={value}>
+    <CatalogContext.Provider value={store}>
       {!session.branchId && session.userType === 'ADMIN' && (
         <label className="mb-5 flex items-center gap-3 rounded-xl bg-white p-4 font-semibold">
           Chi nhánh{' '}
@@ -102,20 +62,17 @@ export function PortalContext() {
         >
           {error}{' '}
           <button
-            onClick={() => setRevision((r) => r + 1)}
+            onClick={() => {
+              store.invalidate()
+              setRevision((r) => r + 1)
+            }}
             className="underline"
           >
             Thử lại
           </button>
         </div>
       )}
-      {!branchId ? (
-        <p>Chọn chi nhánh để làm việc.</p>
-      ) : loading ? (
-        <p role="status">Đang tải danh mục…</p>
-      ) : error && !result.catalog ? null : (
-        <Outlet />
-      )}
+      {!branchId ? <p>Chọn chi nhánh để làm việc.</p> : <Outlet />}
     </CatalogContext.Provider>
   )
 }

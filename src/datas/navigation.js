@@ -1,4 +1,5 @@
 import {
+  QrCode,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -9,6 +10,12 @@ import {
 } from 'lucide-react'
 
 export const navigationItems = [
+  {label:'Nguyên/nhiên liệu',icon:ClipboardList,children:[{label:'Nhập - Xuất nguyên/nhiên liệu',path:'/dashboard/materials'},{label:'Lô và hạn dùng',path:'/dashboard/materials/lots'},{label:'Nhu cầu / Tiêu hao',path:'/dashboard/materials/consumption'}]},
+  {label:'Kế hoạch bán trú',icon:CalendarDays,path:'/dashboard/kitchen-plan/boarding'},
+  {label:'Đơn căn tin',icon:Utensils,path:'/dashboard/cooking/tickets'},
+  {label:'Chốt ca',icon:FileText,path:'/dashboard/shift/summary'},
+  {label:'In tem / Mã QR',icon:QrCode,path:'/dashboard/barcode-print'},
+  {label:'Cấu hình bếp',icon:CalendarDays,path:'/dashboard/configuration'},
   {
     label: 'Tổng quan',
     path: '/dashboard',

@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
       { email, password },
     )
     if (
-      !['KITCHEN', 'HEAD_CHEF', 'MANAGER', 'ADMIN'].includes(data?.userType) ||
+      !['CASHIER','KITCHEN', 'MANAGER', 'ADMIN'].includes(data?.userType) ||
       !data.accessToken
     )
       throw new Error('Tài khoản không có quyền vào portal bếp')

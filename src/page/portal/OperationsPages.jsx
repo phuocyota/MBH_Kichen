@@ -353,12 +353,13 @@ export function BoardingPage() {
   )
 }
 export function SummaryPage({ report = false, history = false }) {
-  const { manager } = useAuth(),
+  const { manager, session } = useAuth(),
     [query, setQuery] = useState(() => ({
       ...defaultQuery(),
       from: defaultQuery().date,
       to: defaultQuery().date,
     }))
+  const canReadReports = manager || session.userType === 'HEAD_CHEF'
   const state = useKitchenData(
     history
       ? '/kitchen/history'
@@ -370,7 +371,12 @@ export function SummaryPage({ report = false, history = false }) {
   const operations = useKitchenData(
     '/kitchen/reports/operations',
     { from: query.from, to: query.to },
-    manager && !history,
+    canReadReports && !history,
+  )
+  const materials = useKitchenData(
+    '/kitchen/reports/material-inventory',
+    { from: query.from, to: query.to },
+    canReadReports && report && !history,
   )
   return (
     <PageFrame
@@ -381,7 +387,7 @@ export function SummaryPage({ report = false, history = false }) {
             ? 'Báo cáo bếp'
             : 'Tổng quan bếp'
       }
-      state={state}
+      state={{ ...state, reload: () => Promise.all([state.reload(), operations.reload(), materials.reload()]) }}
       action={
         !history && (
           <button className={buttonClass} onClick={() => window.print()}>
@@ -435,7 +441,7 @@ export function SummaryPage({ report = false, history = false }) {
               )
             })}
           </div>
-          {manager && operations.data && (
+          {canReadReports && operations.data && (
             <div className="rounded-xl bg-white p-5">
               <h2 className="text-xl font-bold">Vận hành căn tin / bán trú</h2>
               <p>
@@ -456,6 +462,28 @@ export function SummaryPage({ report = false, history = false }) {
               </p>
               <p>Lần thiếu nguyên liệu: {operations.data.shortages?.count}</p>
             </div>
+          )}
+          {canReadReports && report && (
+            <section className="space-y-3 rounded-xl bg-white p-5">
+              <h2 className="text-xl font-bold">Tồn đầu / cuối kỳ nguyên, nhiên liệu</h2>
+              <p className="text-sm text-slate-500">Theo khoảng ngày đã chọn, gồm toàn bộ ca và kho của căn tin. Số lượng theo đơn vị tồn chuẩn; tồn kỳ trước được tính từ tồn hiện tại và lịch sử biến động kho.</p>
+              {materials.loading && <p>Đang tải tồn nguyên liệu…</p>}
+              {materials.error && <p role="alert" className="text-red-600">{materials.error}</p>}
+              {!materials.loading && !materials.error && <Table
+                rows={materials.data?.data || []}
+                columns={[
+                  ['code', 'Mã nguyên liệu'],
+                  ['name', 'Tên nguyên / nhiên liệu'],
+                  ['unit', 'Đơn vị'],
+                  ...[
+                    ['openingQuantity', 'Tồn đầu kỳ'],
+                    ['incomingQuantity', 'Nhập trong kỳ'],
+                    ['outgoingQuantity', 'Xuất trong kỳ'],
+                    ['closingQuantity', 'Tồn cuối kỳ'],
+                  ].map(([key, label]) => [key, label, (row) => Number(row[key]).toLocaleString('vi-VN', { maximumFractionDigits: 4 })]),
+                ]}
+              />}
+            </section>
           )}
         </>
       )}

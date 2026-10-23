@@ -11,7 +11,7 @@ import { api } from "../../api/kitchenApi";
 import { useKitchenData } from "../../hooks/useKitchenData";
 import { useAuth } from "../../auth/authContext";
 import { today } from "./portalHelpers";
-import { Field, PageFrame, Table, buttonClass } from "./PortalUI";
+import { Field, ImageField, PageFrame, Table, buttonClass } from "./PortalUI";
 
 const statuses = {
   WAITING: "Chờ nhận",
@@ -452,6 +452,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
             {dish.description && (
               <p className="mt-2 text-sm text-slate-500">{dish.description}</p>
             )}
+            {dish.actualImageUrl && <img className="mt-3 h-40 rounded-xl object-cover" src={dish.actualImageUrl} alt={`Ảnh thực tế ${dish.name}`} />}
             <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               {dish.requirements.map((line) => (
                 <li key={line.productId}>
@@ -464,9 +465,10 @@ function TaskDetail({ task, reload, onNotificationError }) {
             </ul>
             {dish.requiresSample && (
               <p className="mt-3 text-xs font-semibold text-orange-600">
-                Bắt buộc lưu mẫu trước khi hoàn tất.
+                {dish.hasValidSample ? 'Đã có mẫu hợp lệ.' : 'Bắt buộc lưu mẫu trước khi hoàn tất.'}
               </p>
             )}
+            {dish.requiresImage && <p className="mt-3 text-xs font-semibold text-orange-600">Bắt buộc có ảnh thực tế của mẻ trước khi hoàn tất.</p>}
           </article>
         ))}
       </section>
@@ -820,7 +822,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
             samples: Object.entries(samples).map(([batchId, value]) => ({
               batchId,
               ...value,
-              quantity: Number(value.quantity),
+              quantity: value.quantity === '' || value.quantity == null ? undefined : Number(value.quantity),
             })),
           }))}
           className="space-y-4 rounded-2xl bg-white p-5"
@@ -839,7 +841,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
             .filter(
               (entry) =>
                 task.dishes.find((dish) => dish.productId === entry.productId)
-                  ?.requiresSample,
+                  ?.requiresImage || (task.dishes.find((dish) => dish.productId === entry.productId)?.requiresSample && !task.dishes.find((dish) => dish.productId === entry.productId)?.hasValidSample),
             )
             .map((entry) => {
               const sample = samples[entry.batchId] || {
@@ -848,10 +850,10 @@ function TaskDetail({ task, reload, onNotificationError }) {
                 storageLocation: "",
               };
               const update = (key, value) =>
-                setSamples({
-                  ...samples,
-                  [entry.batchId]: { ...sample, [key]: value },
-                });
+                setSamples((current) => ({
+                  ...current,
+                  [entry.batchId]: { ...sample, ...current[entry.batchId], [key]: value },
+                }));
               return (
                 <fieldset
                   key={entry.batchId}
@@ -859,8 +861,9 @@ function TaskDetail({ task, reload, onNotificationError }) {
                   className="space-y-3 rounded-xl border p-4"
                 >
                   <legend className="font-semibold">
-                    Lưu mẫu · {entry.name}
+                    Minh chứng / lưu mẫu · {entry.name}
                   </legend>
+                  {task.dishes.find((dish) => dish.productId === entry.productId)?.requiresSample && !task.dishes.find((dish) => dish.productId === entry.productId)?.hasValidSample && <>
                   <Field
                     label={`Lượng mẫu - ${entry.name}`}
                     type="number"
@@ -880,6 +883,13 @@ function TaskDetail({ task, reload, onNotificationError }) {
                     value={sample.storageLocation}
                     onChange={(value) => update("storageLocation", value)}
                   />
+                  </>}
+                  {task.dishes.find((dish) => dish.productId === entry.productId)?.requiresImage && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-orange-600">Bắt buộc có ảnh thực tế của mẻ trước khi hoàn tất.</p>
+                      <ImageField value={sample.imageUrl} onChange={(value) => update("imageUrl", value)} />
+                    </div>
+                  )}
                 </fieldset>
               );
             })}

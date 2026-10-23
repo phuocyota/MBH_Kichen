@@ -58,8 +58,8 @@ export function DocumentPage({ kind, historyOnly = false }) {
   const editing = ['create', 'edit'].includes(dialog?.mode)
   const plans = useKitchenData(
     '/kitchen/meal-plans',
-    { date: query.date },
-    editing && ['finished-imports', 'samples'].includes(kind),
+    { date: query.date, ...(kind === 'samples' ? { includeSampleStatus: true } : {}) },
+    kind === 'samples' || (editing && kind === 'finished-imports'),
   )
   const inventory = useKitchenChoices(
     '/kitchen/finished-inventory',
@@ -77,6 +77,11 @@ export function DocumentPage({ kind, historyOnly = false }) {
     ...r,
     name: `${catalog.productName(r.payload.productId)} · ${r.payload.lotCode} · còn ${r.payload.availableQuantity} · cách ly ${r.payload.quarantinedQuantity}`,
   }))
+  const missingSamples = [...new Map(batches.filter((batch) =>
+    batch.requiresSample && !batch.hasValidSample &&
+    ['PREPARING', 'READY', 'COMPLETED'].includes(batch.status) &&
+    (!query.shift || batch.shift === query.shift),
+  ).map((batch) => [batch.details?.workflowTicketId ? `sale:${batch.productId}` : batch.id, batch])).values()]
   const canCreate =
     !historyOnly &&
     !['finished-inventory'].includes(kind) &&
@@ -206,6 +211,19 @@ export function DocumentPage({ kind, historyOnly = false }) {
         <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">
           {actionError}
         </p>
+      )}
+      {kind === 'samples' && !historyOnly && (
+        <section className="space-y-3 rounded-xl border border-orange-200 bg-orange-50 p-4">
+          <h2 className="font-bold">Món / mẻ bắt buộc chưa lưu mẫu · {missingSamples.length}</h2>
+          <p className="text-sm">Mỗi món bán qua chế biến cần một mẫu hợp lệ tại căn tin trong ngày, kể cả ≤30. Mẻ theo kế hoạch trên 30 thành phẩm cần mẫu và ảnh thực tế riêng. Mọi mẻ bán trú đều bắt buộc có ảnh thực tế.</p>
+          {missingSamples.map((batch) => (
+            <div key={batch.id} className="flex items-center justify-between gap-3 rounded-lg bg-white p-3 text-sm">
+              <span>{batch.name}{batch.requiresImage ? ' · Bắt buộc ảnh thực tế khi hoàn tất' : ''}</span>
+              <ActionButton onClick={() => open('create', { payload: { batchId: batch.id } })}>Lưu mẫu</ActionButton>
+            </div>
+          ))}
+          {!plans.loading && !plans.error && !missingSamples.length && <p className="text-sm">Không có món / mẻ bắt buộc còn thiếu mẫu.</p>}
+        </section>
       )}
       <Table
         rows={state.data?.data || []}

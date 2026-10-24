@@ -378,6 +378,22 @@ export function SummaryPage({ report = false, history = false }) {
     { from: query.from, to: query.to },
     canReadReports && report && !history,
   )
+  const reportStatuses = {
+    WAITING: 'Chờ làm', PREPARING: 'Đang chế biến', READY: 'Sẵn sàng',
+    COMPLETED: 'Hoàn thành', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy',
+  }
+  const reportRows = Object.entries(state.data || {}).flatMap(([key, value]) =>
+    Array.isArray(value) && value.length
+      ? value.map((row) => ({
+          id: `${key}:${row.status}`, label: summaryLabels[key] || key,
+          status: reportStatuses[row.status] || row.status,
+          value: Number(row.count).toLocaleString('vi-VN'),
+        }))
+      : [{
+          id: key, label: summaryLabels[key] || key, status: '—',
+          value: Number(Array.isArray(value) ? 0 : value).toLocaleString('vi-VN', { maximumFractionDigits: 4 }),
+        }],
+  )
   return (
     <PageFrame
       title={
@@ -417,7 +433,14 @@ export function SummaryPage({ report = false, history = false }) {
         </>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {report ? (
+            <section className="space-y-3 rounded-xl bg-white p-5">
+              <h2 className="text-xl font-bold">Bảng tổng hợp nghiệp vụ bếp</h2>
+              <Table rows={reportRows} columns={[
+                ['label', 'Chỉ tiêu'], ['status', 'Trạng thái'], ['value', 'Số liệu'],
+              ]} />
+            </section>
+          ) : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Object.entries(state.data || {}).filter(([key]) =>
               report || !['importedQuantity', 'exportedQuantity'].includes(key),
             ).map(([key, value]) => {
@@ -440,7 +463,7 @@ export function SummaryPage({ report = false, history = false }) {
               </Card>
               )
             })}
-          </div>
+          </div>}
           {canReadReports && operations.data && (
             <div className="rounded-xl bg-white p-5">
               <h2 className="text-xl font-bold">Vận hành căn tin / bán trú</h2>

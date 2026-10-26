@@ -208,19 +208,24 @@ export function CookingPage({ tickets = false }) {
   )
 }
 export function BoardingPage() {
-  const { branchId, manager } = useAuth(),
+  const { branchId, manager, session } = useAuth(),
     { productName } = useCatalog(),
     [query, setQuery] = useState(defaultQuery),
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
+    [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false)
+  const canAcceptPlan = manager || session.userType === 'HEAD_CHEF'
   const state = useKitchenData('/kitchen/meal-plans', { date: query.date, includePlannedItems: true })
   async function lock(r) {
+    if (busy) return
     setBusy(true)
+    setNotice('')
     try {
       await api.action('/kitchen/meal-plans', r.id, 'lock')
       await state.reload()
       setError('')
+      setNotice('Đã tiếp nhận kế hoạch và tạo mẻ. Vào Nhận việc & Chế biến, chọn đúng ngày để xử lý nhiệm vụ.')
     } catch (e) {
       setError(e.message)
     } finally {
@@ -230,7 +235,7 @@ export function BoardingPage() {
   return (
     <PageFrame
       title="Kế hoạch bán trú"
-      description="Món và số suất dự kiến từ Admin được đồng bộ theo ngày, bữa. Khóa kế hoạch để sinh mẻ chế biến; nếu có đăng ký thực tế thì dùng số suất đăng ký."
+      description="Món và số suất dự kiến từ Admin được đồng bộ theo ngày, bữa. Bếp trưởng tiếp nhận kế hoạch để tạo mẻ chế biến; nếu có đăng ký thực tế thì dùng số suất đăng ký."
       state={state}
       action={
         manager && (
@@ -247,6 +252,11 @@ export function BoardingPage() {
       {error && (
         <p role="alert" className="text-red-600">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="rounded-xl bg-emerald-50 p-4 text-emerald-800">
+          {notice}
         </p>
       )}
       <Table
@@ -275,19 +285,22 @@ export function BoardingPage() {
           ],
         ]}
         actions={
-          manager
+          canAcceptPlan
             ? (r) => (
                 <>
                   {r.status === 'DRAFT' && (
                     <ActionButton disabled={busy} onClick={() => lock(r)}>
-                      Khóa và sinh mẻ
+                      {busy ? 'Đang tiếp nhận…' : 'Tiếp nhận & tạo mẻ chế biến'}
                     </ActionButton>
                   )}
-                  <ActionButton
-                    onClick={() => setDialog({ mode: 'adjust', row: r })}
-                  >
-                    Điều chỉnh số suất
-                  </ActionButton>
+                  {manager && (
+                    <ActionButton
+                      disabled={busy}
+                      onClick={() => setDialog({ mode: 'adjust', row: r })}
+                    >
+                      Điều chỉnh số suất
+                    </ActionButton>
+                  )}
                 </>
               )
             : undefined

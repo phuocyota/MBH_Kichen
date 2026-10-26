@@ -4,6 +4,8 @@ import { useKitchenData } from "../../hooks/useKitchenData";
 import { useAuth } from "../../auth/authContext";
 import RecipeFormDialog from "./RecipeFormDialog";
 import { api } from "../../api/kitchenApi";
+import { Link } from "react-router-dom";
+import { pendingRecipeRequests } from "./recipeRequestStatus";
 
 export default function RecipeRequestInbox({ productId = "" }) {
   const { session } = useAuth();
@@ -38,18 +40,16 @@ export default function RecipeRequestInbox({ productId = "" }) {
     return () => window.removeEventListener("kitchen:recipe-requests", reload);
   }, [enabled, reloadRequests]);
   if (!enabled) return null;
-  const rows = (Array.isArray(state.data) ? state.data : []).filter((row) =>
-    ["OPEN", "DRAFTED", "REVISION_REQUESTED"].includes(row.status),
-  );
+  const rows = pendingRecipeRequests(state.data);
   return (
     <section
-      aria-label="Yêu cầu công thức từ quản trị"
+      aria-label="Thông báo công thức và định lượng"
       className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 font-bold text-amber-900">
           <Bell size={18} />
-          Yêu cầu từ quản trị {state.data && `(${rows.length})`}
+          Công thức & định lượng cần theo dõi {state.data && `(${rows.length})`}
         </h2>
         <button
           type="button"
@@ -83,12 +83,15 @@ export default function RecipeRequestInbox({ productId = "" }) {
             <span className="text-xs text-amber-700">
               {row.status === "OPEN"
                 ? "Chờ tạo công thức"
+                : row.status === "SUBMITTED"
+                  ? "Đã gửi duyệt · Chờ Admin/Quản lý"
                 : row.status === "REVISION_REQUESTED"
                   ? "Quản trị yêu cầu chỉnh sửa"
                   : "Đã có bản nháp · cần gửi duyệt"}
             </span>
           </div>
           <p className="mt-2 text-slate-700">{row.note}</p>
+          {row.batchCount > 0 && <p className="mt-2 text-sm font-medium text-orange-700">{row.batchCount} mẻ đang chờ công thức được duyệt{row.productionDate ? ` · Từ ngày ${row.productionDate.split('-').reverse().join('/')}` : ''}.</p>}
           {row.revisionReason && (
             <p className="mt-2 rounded-lg bg-orange-50 p-3 text-orange-800">
               Nội dung cần chỉnh sửa: {row.revisionReason}
@@ -98,7 +101,9 @@ export default function RecipeRequestInbox({ productId = "" }) {
             {row.requestedByName} ·{" "}
             {new Date(row.reviewedAt || row.createdAt).toLocaleString("vi-VN")}
           </p>
-            <button
+            {row.status === 'SUBMITTED' ? (
+              <Link className="mt-3 inline-block font-semibold text-blue-600 underline" to={`/dashboard/menu/recipes?productId=${encodeURIComponent(row.productId)}`}>Xem công thức chờ duyệt</Link>
+            ) : <button
               type="button"
               disabled={Boolean(opening)}
               className="mt-3 inline-block font-semibold text-blue-600 underline"
@@ -107,7 +112,7 @@ export default function RecipeRequestInbox({ productId = "" }) {
               {opening === row.id ? "Đang mở công thức…" : row.status === "OPEN"
                 ? "Thiết lập công thức & định lượng"
                 : row.status === "REVISION_REQUESTED" ? "Chỉnh sửa công thức & gửi lại" : "Mở bản nháp để gửi duyệt"}
-            </button>
+            </button>}
         </article>
       ))}
       {request && (

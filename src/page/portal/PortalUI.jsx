@@ -66,36 +66,48 @@ export function Field({
     </label>
   )
 }
-export function ImageField({ value, onChange }) {
+export function ImageField({ value, onChange, label = 'Ảnh minh chứng', camera = false, disabled = false, onUploadStateChange }) {
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false)
+  const upload = async (event) => {
+    const input = event.target
+    if (!input.files[0] || busy || disabled) return
+    setBusy(true)
+    setError('')
+    onUploadStateChange?.(true)
+    try {
+      const data = await uploadImage(input.files[0])
+      onChange(data.imageUrl)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      input.value = ''
+      setBusy(false)
+      onUploadStateChange?.(false)
+    }
+  }
   return (
-    <label className="grid gap-2 text-sm">
-      Ảnh minh chứng
+    <div className="grid gap-2 text-sm">
+      <span className="font-semibold">{label}</span>
+      {camera && (
+        <label className={`inline-flex min-h-11 w-fit cursor-pointer items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 font-semibold text-blue-700 ${busy || disabled ? 'opacity-50' : ''}`}>
+          Chụp ảnh thành phẩm
+          <input className="sr-only" aria-label="Chụp ảnh thành phẩm" type="file" accept="image/*" capture="environment" disabled={busy || disabled} onChange={upload} />
+        </label>
+      )}
       <input
-        disabled={busy}
+        aria-label={`Tải lên ${label.toLowerCase()}`}
+        disabled={busy || disabled}
         type="file"
         accept="image/*"
-        onChange={async (e) => {
-          if (!e.target.files[0]) return
-          setBusy(true)
-          try {
-            const data = await uploadImage(e.target.files[0])
-            onChange(data.imageUrl)
-            setError('')
-          } catch (err) {
-            setError(err.message)
-          } finally {
-            setBusy(false)
-          }
-        }}
+        onChange={upload}
       />
       {busy && <span>Đang tải ảnh…</span>}
       {value && (
         <img
           className="h-24 w-24 rounded object-cover"
           src={value}
-          alt="Ảnh minh chứng"
+          alt={label}
         />
       )}
       {error && (
@@ -103,7 +115,7 @@ export function ImageField({ value, onChange }) {
           {error}
         </span>
       )}
-    </label>
+    </div>
   )
 }
 export function Filters({ query, setQuery, ranges = false }) {

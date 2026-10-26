@@ -236,6 +236,7 @@ export function BoardingPage() {
     try {
       await api.action('/kitchen/meal-plans', r.id, 'lock')
       await state.reload()
+      window.dispatchEvent(new Event('kitchen:recipe-requests'))
       setError('')
       setNotice('Đã tiếp nhận kế hoạch và tạo mẻ. Vào Nhận việc & Chế biến, chọn đúng ngày để xử lý nhiệm vụ.')
     } catch (e) {

@@ -1,4 +1,6 @@
 import { useAuth } from "../auth/authContext";
+import { useKitchenData } from "../hooks/useKitchenData";
+import { pendingRecipeRequests } from "../page/portal/recipeRequestStatus";
 import { useEffect, useMemo, useState } from "react";
 import {
   Link,
@@ -53,6 +55,14 @@ function AppLayout() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const { session, logout } = useAuth();
+  const recipeNotices = useKitchenData('/kitchen/recipe-requests', {}, session.userType === 'HEAD_CHEF');
+  const recipeNoticeCount = pendingRecipeRequests(recipeNotices.data).length;
+  const reloadRecipeNotices = recipeNotices.reload;
+  useEffect(() => {
+    if (session.userType !== 'HEAD_CHEF') return;
+    window.addEventListener('kitchen:recipe-requests', reloadRecipeNotices);
+    return () => window.removeEventListener('kitchen:recipe-requests', reloadRecipeNotices);
+  }, [session.userType, reloadRecipeNotices]);
   const currentStaff = {
     ...session,
     role:
@@ -338,11 +348,12 @@ function AppLayout() {
                 }
                 aria-label={
                   session.userType === "HEAD_CHEF"
-                    ? "Thông báo yêu cầu công thức"
+                    ? `Thông báo công thức và định lượng: ${recipeNoticeCount} mục cần theo dõi`
                     : "Thông báo nhiệm vụ bếp"
                 }
               >
                 <Bell size={20} aria-hidden="true" />
+                {session.userType === 'HEAD_CHEF' && recipeNoticeCount > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-xs font-bold text-white">{recipeNoticeCount}</span>}
               </Link>
 
               <button

@@ -31,10 +31,12 @@ function buildQuery(params = {}) {
 export async function uploadImage(file) {
   const form = new FormData()
   form.append('file', file)
-  const { data } = await httpClient.post('/uploads/image', form, {
+  const data = await httpClient.post('/upload/images', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return data || {}
+  const url = data?.imageUrl || data?.path
+  if (!url) throw new Error('Máy chủ chưa trả đường dẫn ảnh đã tải lên')
+  return { ...data, imageUrl: new URL(url, httpClient.defaults.baseURL || window.location.origin).href }
 }
 
 export const api = {

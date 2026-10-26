@@ -1,3 +1,4 @@
+import BatchConfirmation from "./BatchConfirmation";
 import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -260,13 +261,14 @@ function TaskDetail({ task, reload, onNotificationError }) {
   };
   const [actuals, setActuals] = useState(() =>
     task.actuals.length
-      ? structuredClone(task.actuals)
+      ? task.actuals.map((actual) => ({ ...structuredClone(actual), imageUrl: actual.imageUrl || task.confirmations?.find((row) => row.batchId === actual.batchId)?.actualImageUrl || '' }))
       : task.received.map((entry) => ({
           batchId: entry.batchId,
           quantity:
             task.dishes.find((dish) => dish.productId === entry.productId)
               ?.quantity || 1,
           note: "",
+          imageUrl: task.confirmations?.find((row) => row.batchId === entry.batchId)?.actualImageUrl || '',
           lots: entry.inputLots.map((line) => ({
             lotId: line.lotId,
             used: line.quantity,
@@ -274,9 +276,13 @@ function TaskDetail({ task, reload, onNotificationError }) {
           })),
         })),
   );
-  const [samples, setSamples] = useState({});
+  const [actualImageUploads, setActualImageUploads] = useState({});
+  const needsActualImage = (actual) => {
+    if (task.type === 'ticket') return false;
+    const batch = task.confirmations?.find((row) => row.batchId === actual.batchId);
+    return batch?.source === 'BOARDING' || Number(actual.quantity) > 30 || (!batch?.source && batch?.requiresImage);
+  };
   const [editingActuals, setEditingActuals] = useState(false);
-  const [qualityPassed, setQualityPassed] = useState(false);
   const [receivedBy, setReceivedBy] = useState("");
   const [receiverPlace, setReceiverPlace] = useState(
     () =>
@@ -454,7 +460,13 @@ function TaskDetail({ task, reload, onNotificationError }) {
         </section>
       )}
       {task.missingRecipes?.length > 0 && (
-        <p role="alert" className="rounded-xl bg-amber-50 p-4 text-amber-800">
+        <div role="alert" className="space-y-2 rounded-xl bg-amber-50 p-4 text-amber-800">
+          {task.missingRecipeDetails?.length ? task.missingRecipeDetails.map((item) => (
+            <p key={item.productId}>
+              <strong>{item.name}</strong>: {item.status === 'PENDING_REVIEW' ? 'Đã gửi công thức và định lượng, chờ Admin/Quản lý phê duyệt.' : item.status === 'DRAFT' ? 'Đã có bản nháp, bếp trưởng cần hoàn thiện và gửi duyệt.' : item.status === 'REVISION_REQUESTED' ? 'Công thức bị yêu cầu chỉnh sửa, bếp trưởng cần cập nhật và gửi lại.' : 'Chưa có công thức và định lượng hợp lệ để chế biến.'}{' '}
+              <Link className="font-semibold underline" to={`/dashboard/menu/recipes?productId=${encodeURIComponent(item.productId)}`}>Xem công thức của món</Link>
+            </p>
+          )) : <p>
           Chưa có công thức đang áp dụng cho: {task.missingRecipes.join(", ")}.{" "}
           <Link
             className="font-semibold underline"
@@ -462,7 +474,8 @@ function TaskDetail({ task, reload, onNotificationError }) {
           >
             Xem công thức / liên hệ bếp trưởng
           </Link>
-        </p>
+          </p>}
+        </div>
       )}
       <section className="space-y-4 rounded-2xl bg-white p-5">
         <h3 className="flex items-center gap-2 text-lg font-bold">
@@ -773,6 +786,12 @@ function TaskDetail({ task, reload, onNotificationError }) {
                   value={actual.quantity}
                   onChange={(value) => change("quantity", value)}
                 />
+                <div className="space-y-2 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                  <ImageField camera label={`Ảnh thành phẩm thực tế · ${entry.name}`} value={actual.imageUrl || ''}
+                    disabled={busy || !mayAct} onChange={(value) => change('imageUrl', value)}
+                    onUploadStateChange={(value) => setActualImageUploads((previous) => ({ ...previous, [actual.batchId]: value }))} />
+                  <p className="text-xs text-slate-500">{needsActualImage(actual) ? 'Bắt buộc có ảnh thực tế của mẻ. ' : ''}Ảnh được lưu cùng sản lượng và nguyên liệu thực tế. Bước Kiểm tra & hoàn thành sẽ xem lại ảnh này và ghi hồ sơ lưu mẫu.</p>
+                </div>
                 {actual.lots.map((line, lotIndex) => {
                   const issued = entry.inputLots.find(
                     (row) => row.lotId === line.lotId,
@@ -835,7 +854,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
               </fieldset>
             );
           })}
-          <button className={buttonClass} disabled={busy || !mayAct}>
+          <button className={buttonClass} disabled={busy || !mayAct || Object.values(actualImageUploads).some(Boolean) || actuals.some((actual) => needsActualImage(actual) && !actual.imageUrl?.trim())}>
             {actionLabels.record}
           </button>
         </form>
@@ -849,97 +868,9 @@ function TaskDetail({ task, reload, onNotificationError }) {
         </button>
       )}
       {task.status === "RECORDED" && !editingActuals && (
-        <form
-          onSubmit={submit("complete", () => ({
-            qualityPassed,
-            samples: Object.entries(samples).map(([batchId, value]) => ({
-              batchId,
-              ...value,
-              quantity: value.quantity === '' || value.quantity == null ? undefined : Number(value.quantity),
-            })),
-          }))}
-          className="space-y-4 rounded-2xl bg-white p-5"
-        >
-          <h3 className="text-lg font-bold">Kiểm tra và hoàn thành</h3>
-          {task.actuals.map((actual) => (
-            <p key={actual.batchId} className="text-sm">
-              {
-                task.received.find((entry) => entry.batchId === actual.batchId)
-                  ?.name
-              }
-              : <strong>{format(actual.quantity)} thành phẩm đạt</strong>
-            </p>
-          ))}
-          {task.received
-            .filter(
-              (entry) =>
-                task.dishes.find((dish) => dish.productId === entry.productId)
-                  ?.requiresImage || (task.dishes.find((dish) => dish.productId === entry.productId)?.requiresSample && !task.dishes.find((dish) => dish.productId === entry.productId)?.hasValidSample),
-            )
-            .map((entry) => {
-              const sample = samples[entry.batchId] || {
-                quantity: "",
-                unit: "g",
-                storageLocation: "",
-              };
-              const update = (key, value) =>
-                setSamples((current) => ({
-                  ...current,
-                  [entry.batchId]: { ...sample, ...current[entry.batchId], [key]: value },
-                }));
-              return (
-                <fieldset
-                  key={entry.batchId}
-                  disabled={busy || !mayAct}
-                  className="space-y-3 rounded-xl border p-4"
-                >
-                  <legend className="font-semibold">
-                    Minh chứng / lưu mẫu · {entry.name}
-                  </legend>
-                  {task.dishes.find((dish) => dish.productId === entry.productId)?.requiresSample && !task.dishes.find((dish) => dish.productId === entry.productId)?.hasValidSample && <>
-                  <Field
-                    label={`Lượng mẫu - ${entry.name}`}
-                    type="number"
-                    min="0.0001"
-                    step="0.0001"
-                    value={sample.quantity}
-                    onChange={(value) => update("quantity", value)}
-                  />
-                  <Field
-                    label={`Đơn vị mẫu - ${entry.name}`}
-                    options={["g", "ml"]}
-                    value={sample.unit}
-                    onChange={(value) => update("unit", value)}
-                  />
-                  <Field
-                    label={`Nơi lưu mẫu - ${entry.name}`}
-                    value={sample.storageLocation}
-                    onChange={(value) => update("storageLocation", value)}
-                  />
-                  </>}
-                  {task.dishes.find((dish) => dish.productId === entry.productId)?.requiresImage && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-orange-600">Bắt buộc có ảnh thực tế của mẻ trước khi hoàn tất.</p>
-                      <ImageField value={sample.imageUrl} onChange={(value) => update("imageUrl", value)} />
-                    </div>
-                  )}
-                </fieldset>
-              );
-            })}
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              required
-              type="checkbox"
-              checked={qualityPassed}
-              disabled={busy || !mayAct}
-              onChange={(e) => setQualityPassed(e.target.checked)}
-            />
-            Xác nhận thành phẩm đạt yêu cầu
-          </label>
-          <button className={buttonClass} disabled={busy || !mayAct}>
-            {actionLabels.complete}
-          </button>
-        </form>
+        <BatchConfirmation task={task} busy={busy} mayAct={mayAct}
+          onEditActuals={() => setEditingActuals(true)}
+          onConfirm={(body) => mutate("complete", body)} />
       )}
       {(task.status === "COMPLETED" || partialHandover) && (
         <form

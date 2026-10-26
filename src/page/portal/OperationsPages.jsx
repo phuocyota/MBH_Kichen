@@ -214,7 +214,7 @@ export function BoardingPage() {
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false)
-  const state = useKitchenData('/kitchen/meal-plans', { date: query.date })
+  const state = useKitchenData('/kitchen/meal-plans', { date: query.date, includePlannedItems: true })
   async function lock(r) {
     setBusy(true)
     try {
@@ -230,7 +230,7 @@ export function BoardingPage() {
   return (
     <PageFrame
       title="Kế hoạch bán trú"
-      description="Khóa kế hoạch để sinh mẻ chế biến từ thực đơn bán trú và số suất đăng ký. Kế hoạch thủ công được lập riêng."
+      description="Món và số suất dự kiến từ Admin được đồng bộ theo ngày, bữa. Khóa kế hoạch để sinh mẻ chế biến; nếu có đăng ký thực tế thì dùng số suất đăng ký."
       state={state}
       action={
         manager && (
@@ -255,6 +255,13 @@ export function BoardingPage() {
           ['planDate', 'Ngày'],
           ['mealPeriod', 'Bữa'],
           ['status', 'Trạng thái'],
+          [
+            'plannedItems',
+            'Món và số suất dự kiến từ Admin',
+            (r) => r.plannedItems?.length
+              ? r.plannedItems.map((item) => `${item.productName} · ${item.level === 'preschool' ? 'Mầm non' : item.level === 'primary' ? 'Tiểu học' : item.level} · ${item.expectedQuantity} suất`).join('; ')
+              : 'Chưa có số suất dự kiến',
+          ],
           [
             'batches',
             'Mẻ',

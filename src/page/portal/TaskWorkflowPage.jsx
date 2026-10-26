@@ -21,6 +21,7 @@ const statuses = {
   PREPARING: "Đang chế biến",
   RECORDED: "Đã ghi thực tế",
   COMPLETED: "Chờ bàn giao",
+  IN_TRANSIT: "Đang vận chuyển",
   HANDED_OVER: "Đã bàn giao",
   LEGACY: "Cần xác nhận nguyên liệu",
 };
@@ -31,6 +32,7 @@ const actionLabels = {
   start: "Bắt đầu chế biến",
   record: "Lưu thực tế",
   complete: "Kiểm tra và hoàn thành",
+  dispatch: "Bắt đầu vận chuyển",
   handover: "Xác nhận bàn giao",
   "handover-partial": "Xác nhận bàn giao phần đã hoàn thành",
 };
@@ -152,7 +154,7 @@ export default function TaskWorkflowPage({ preset = "" }) {
           value={allowedStatuses.length ? status : ''}
           options={[
             ...Object.entries(statuses).map(([id, name]) => ({ id, name })),
-            { id: 'COMPLETED,HANDED_OVER', name: 'Đã hoàn thành / bàn giao' },
+            { id: 'COMPLETED,IN_TRANSIT,HANDED_OVER', name: 'Đã hoàn thành / bàn giao' },
           ]}
           onChange={(value) => changeListFilter('status', value)}
         />
@@ -283,6 +285,14 @@ function TaskDetail({ task, reload, onNotificationError }) {
     return batch?.source === 'BOARDING' || Number(actual.quantity) > 30 || (!batch?.source && batch?.requiresImage);
   };
   const [editingActuals, setEditingActuals] = useState(false);
+  const [useTransport, setUseTransport] = useState(false);
+  const [originPlace, setOriginPlace] = useState("");
+  const [destinationPlace, setDestinationPlace] = useState("");
+  const [carrierName, setCarrierName] = useState("");
+  const [transportImageUrl, setTransportImageUrl] = useState("");
+  const [transportImageUploading, setTransportImageUploading] = useState(false);
+  const dispatching = task.status === "COMPLETED" && task.canTransport && useTransport;
+  const inTransit = task.status === "IN_TRANSIT";
   const [receivedBy, setReceivedBy] = useState("");
   const [receiverPlace, setReceiverPlace] = useState(
     () =>
@@ -319,6 +329,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
       PREPARING: 4,
       RECORDED: 5,
       COMPLETED: 6,
+      IN_TRANSIT: 6,
       HANDED_OVER: 7,
     }[task.status] || 0;
   const mutate = async (action, body = {}) => {
@@ -872,13 +883,29 @@ function TaskDetail({ task, reload, onNotificationError }) {
           onEditActuals={() => setEditingActuals(true)}
           onConfirm={(body) => mutate("complete", body)} />
       )}
-      {(task.status === "COMPLETED" || partialHandover) && (
+      {task.transport && (
+        <section className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900">
+          <h3 className="text-lg font-bold">{inTransit ? "Đang vận chuyển đến điểm phục vụ" : "Thông tin vận chuyển"}</h3>
+          <p>Điểm chế biến: {task.transport.originPlace}</p>
+          <p>Điểm nhận: {task.transport.destinationPlace}</p>
+          <p>Người vận chuyển: {task.transport.carrierName}</p>
+          {task.transport.imageUrl && <img className="max-h-80 rounded-lg object-contain" src={task.transport.imageUrl} alt="Ảnh thành phẩm lúc bắt đầu vận chuyển" />}
+          <p>Khởi hành: {new Date(task.transport.dispatchedAt).toLocaleString("vi-VN")}</p>
+          {task.transport.servingExpiresAt && <p>Hạn sử dụng: {new Date(task.transport.servingExpiresAt).toLocaleString("vi-VN")}</p>}
+          {task.transport.receivedAt && <p>Đã nhận tại điểm đến: {new Date(task.transport.receivedAt).toLocaleString("vi-VN")}</p>}
+        </section>
+      )}
+      {(task.status === "COMPLETED" || inTransit || partialHandover) && (
         <form
           onSubmit={submit(
-            partialHandover ? "handover-partial" : "handover",
+            dispatching ? "dispatch" : partialHandover ? "handover-partial" : "handover",
             () => ({
+              originPlace,
+              destinationPlace,
+              carrierName,
+              imageUrl: dispatching ? transportImageUrl : undefined,
               receivedBy,
-              receiverPlace,
+              receiverPlace: inTransit ? task.transport.destinationPlace : receiverPlace,
               confirmPartial,
               items: handoverItems.map((actual) => ({
                 batchId: actual.batchId,
@@ -889,7 +916,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
           className="space-y-4 rounded-2xl bg-white p-5"
         >
           <h3 className="text-lg font-bold">
-            {partialHandover
+            {dispatching ? "Vận chuyển bán trú" : inTransit ? "Xác nhận nhận tại điểm đến" : partialHandover
               ? "Bàn giao phần đã hoàn thành"
               : "Bàn giao thành phẩm"}
           </h3>
@@ -898,6 +925,23 @@ function TaskDetail({ task, reload, onNotificationError }) {
               ? "Chỉ bàn giao các đợt đã qua kiểm tra. Phần còn lại tiếp tục chờ nguyên liệu, đơn chưa hoàn tất."
               : "Bàn giao sản lượng đã hoàn tất còn lại của nhiệm vụ này."}
           </p>
+          {task.status === "COMPLETED" && task.canTransport && (
+            <label className="flex items-center gap-3 text-sm font-semibold">
+              <input type="checkbox" checked={useTransport} disabled={busy || !mayAct} onChange={(event) => setUseTransport(event.target.checked)} />
+              Chế biến tại A, vận chuyển đến điểm phục vụ B
+            </label>
+          )}
+          {dispatching && (
+            <>
+              <Field label="Điểm chế biến / xuất phát (A)" value={originPlace} onChange={setOriginPlace} />
+              <Field label="Điểm nhận / phục vụ (B)" value={destinationPlace} onChange={setDestinationPlace} />
+              <Field label="Người / đơn vị vận chuyển" value={carrierName} onChange={setCarrierName} />
+              <ImageField camera label="Ảnh thành phẩm lúc bắt đầu vận chuyển (bắt buộc)"
+                value={transportImageUrl} onChange={setTransportImageUrl}
+                disabled={busy || !mayAct} onUploadStateChange={setTransportImageUploading} />
+              <p className="text-sm text-slate-500">Thành phẩm được xuất khỏi bếp khi khởi hành. Xác nhận người nhận tại B khi giao đến; hạn sử dụng giữ nguyên từ lúc hoàn tất chế biến.</p>
+            </>
+          )}
           {handoverItems.map((actual) => (
             <p key={actual.batchId}>
               {actual.name ||
@@ -906,6 +950,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
               : <strong>{format(actual.quantity)}</strong>
             </p>
           ))}
+          {!dispatching && <>
           <div className="space-y-2">
             <p className="text-sm font-semibold">
               Chọn nhanh người / bộ phận nhận
@@ -936,7 +981,7 @@ function TaskDetail({ task, reload, onNotificationError }) {
             onChange={setReceivedBy}
           />
           <div className="flex flex-wrap gap-2">
-            {placeSuggestions.map((place) => (
+            {!inTransit && placeSuggestions.map((place) => (
               <button
                 key={place}
                 type="button"
@@ -951,9 +996,11 @@ function TaskDetail({ task, reload, onNotificationError }) {
           </div>
           <Field
             label="Nơi nhận"
-            value={receiverPlace}
+            value={inTransit ? task.transport.destinationPlace : receiverPlace}
+            disabled={inTransit}
             onChange={setReceiverPlace}
           />
+          </>}
           {partialHandover && (
             <label className="flex items-start gap-3 text-sm font-semibold text-amber-800">
               <input
@@ -977,10 +1024,11 @@ function TaskDetail({ task, reload, onNotificationError }) {
               busy ||
               !mayAct ||
               !mayHandover ||
-              (partialHandover && !confirmPartial)
+              (partialHandover && !confirmPartial) ||
+              (dispatching && (transportImageUploading || !transportImageUrl.trim()))
             }
           >
-            {actionLabels.handover}
+            {dispatching ? actionLabels.dispatch : inTransit ? "Xác nhận đã nhận tại B" : actionLabels.handover}
           </button>
         </form>
       )}

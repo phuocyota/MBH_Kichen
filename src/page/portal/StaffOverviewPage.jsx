@@ -103,7 +103,7 @@ export default function StaffOverviewPage() {
           label: "Công việc hoàn thành",
           value: `${number(data.completedCount)}/${number(data.taskCount)}`,
           detail: `${number(data.taskCount - data.completedCount)} công việc còn lại`,
-          to: "/dashboard/cooking/tracking?status=COMPLETED,HANDED_OVER",
+          to: "/dashboard/cooking/tracking?status=COMPLETED,IN_TRANSIT,HANDED_OVER",
         },
       ]
     : [];

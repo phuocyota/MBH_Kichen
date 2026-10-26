@@ -1,6 +1,6 @@
 import { defaultQuery } from './portalHelpers'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/authContext'
 import { useCatalog, toInstant } from './portalHelpers'
 import { useKitchenData } from '../../hooks/useKitchenData'
@@ -208,9 +208,20 @@ export function CookingPage({ tickets = false }) {
   )
 }
 export function BoardingPage() {
+  const [search] = useSearchParams()
   const { branchId, manager, session } = useAuth(),
     { productName } = useCatalog(),
-    [query, setQuery] = useState(defaultQuery),
+    [query, setQuery] = useState(() => {
+      const requestedDate = search.get('date')
+      return {
+        ...defaultQuery(),
+        ...(/^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') &&
+          Number.isFinite(Date.parse(requestedDate)) &&
+          new Date(requestedDate).toISOString().slice(0, 10) === requestedDate
+          ? { date: requestedDate }
+          : {}),
+      }
+    }),
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),

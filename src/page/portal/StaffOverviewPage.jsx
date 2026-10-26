@@ -1,4 +1,5 @@
 import RecipeRequestInbox from "./RecipeRequestInbox";
+import BoardingPlanNotice from "./BoardingPlanNotice";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -135,7 +136,7 @@ export default function StaffOverviewPage() {
             className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"
           />
           <button
-            onClick={state.reload}
+            onClick={() => window.dispatchEvent(new Event("kitchen:reload"))}
             disabled={state.loading}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
           >
@@ -144,6 +145,7 @@ export default function StaffOverviewPage() {
           </button>
         </div>
       </header>
+      <BoardingPlanNotice date={date} />
       <RecipeRequestInbox />
       {state.loading && (
         <p role="status" className="text-sm text-slate-500">

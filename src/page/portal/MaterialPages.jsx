@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { routeDate } from './routeFilters'
 import { api, allPages } from '../../api/kitchenApi'
 import { useAuth } from '../../auth/authContext'
 import { useCatalog, today } from './portalHelpers'
@@ -581,10 +583,11 @@ function LotOpening({ value = [], onChange, expiryRequired }) {
   )
 }
 export function ConsumptionPage() {
+  const [search] = useSearchParams()
   const { branchId, manager } = useAuth(),
     catalog = useCatalog(['products', 'stations']),
     [query, setQuery] = useState({
-      date: today(),
+      date: routeDate(search, today()),
       mealPeriod: 'LUNCH',
       stationId: '',
     }),

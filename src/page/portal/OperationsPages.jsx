@@ -17,6 +17,7 @@ import {
   buttonClass,
 } from './PortalUI'
 import { localInput, summaryLabels } from './portalHelpers'
+import { mealOptions, routeDate, routeMeal, withDate } from './routeFilters'
 
 export function CookingPage({ tickets = false }) {
   const { branchId } = useAuth(),
@@ -208,26 +209,26 @@ export function CookingPage({ tickets = false }) {
   )
 }
 export function BoardingPage() {
-  const [search] = useSearchParams()
+  const [search, setSearch] = useSearchParams()
+  const query = { ...defaultQuery(), date: routeDate(search, defaultQuery().date), mealPeriod: routeMeal(search) }
   const { branchId, manager, session } = useAuth(),
     { productName } = useCatalog(),
-    [query, setQuery] = useState(() => {
-      const requestedDate = search.get('date')
-      return {
-        ...defaultQuery(),
-        ...(/^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') &&
-          Number.isFinite(Date.parse(requestedDate)) &&
-          new Date(requestedDate).toISOString().slice(0, 10) === requestedDate
-          ? { date: requestedDate }
-          : {}),
-      }
-    }),
     [dialog, setDialog] = useState(null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false)
   const canAcceptPlan = manager || session.userType === 'HEAD_CHEF'
-  const state = useKitchenData('/kitchen/meal-plans', { date: query.date, includePlannedItems: true })
+  const changeFilter = (key, value) => {
+    setNotice('')
+    setError('')
+    setSearch((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value) next.set(key, value)
+      else next.delete(key)
+      return next
+    })
+  }
+  const state = useKitchenData('/kitchen/meal-plans', { date: query.date, mealPeriod: query.mealPeriod, includePlannedItems: true })
   async function lock(r) {
     if (busy) return
     setBusy(true)
@@ -259,7 +260,10 @@ export function BoardingPage() {
         )
       }
     >
-      <Filters query={query} setQuery={setQuery} />
+      <div className="flex flex-wrap items-end gap-4 rounded-xl bg-white p-4">
+        <Field label="Ngày" type="date" value={query.date} onChange={(date) => { if (date) changeFilter('date', date) }} />
+        <Field label="Bữa ăn" required={false} placeholder="Tất cả bữa" options={mealOptions} value={query.mealPeriod} onChange={(meal) => changeFilter('mealPeriod', meal)} />
+      </div>
       {error && (
         <p role="alert" className="text-red-600">
           {error}
@@ -268,13 +272,14 @@ export function BoardingPage() {
       {notice && (
         <p role="status" className="rounded-xl bg-emerald-50 p-4 text-emerald-800">
           {notice}
+          {' '}<Link className="font-semibold underline" to={withDate('/dashboard/cooking/tracking', query.date)}>Mở nhiệm vụ chế biến</Link>
         </p>
       )}
       <Table
         rows={state.data || []}
         columns={[
           ['planDate', 'Ngày'],
-          ['mealPeriod', 'Bữa'],
+          ['mealPeriod', 'Bữa', (r) => mealOptions.find((meal) => meal.id === r.mealPeriod)?.name || r.mealPeriod],
           ['status', 'Trạng thái'],
           [
             'plannedItems',

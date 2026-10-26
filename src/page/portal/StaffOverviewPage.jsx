@@ -12,6 +12,7 @@ import { useKitchenData } from "../../hooks/useKitchenData";
 import { today } from "./portalHelpers";
 import { api } from "../../api/kitchenApi";
 import { useAuth } from "../../auth/authContext";
+import { withDate } from "./routeFilters";
 
 const stages = {
   WAITING: {
@@ -102,7 +103,7 @@ export default function StaffOverviewPage() {
           label: "Công việc hoàn thành",
           value: `${number(data.completedCount)}/${number(data.taskCount)}`,
           detail: `${number(data.taskCount - data.completedCount)} công việc còn lại`,
-          to: "/dashboard/cooking/tracking",
+          to: "/dashboard/cooking/tracking?status=COMPLETED,HANDED_OVER",
         },
       ]
     : [];
@@ -120,7 +121,7 @@ export default function StaffOverviewPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            to="/dashboard/cooking/tickets"
+            to={withDate('/dashboard/cooking/tickets', date)}
             className="rounded-xl border border-blue-100 bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-50"
           >
             Đơn căn tin
@@ -166,7 +167,7 @@ export default function StaffOverviewPage() {
             {cards.map((card) => (
               <Link
                 key={card.label}
-                to={card.to}
+                to={withDate(card.to, date)}
                 className="group rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md focus-visible:outline-2 focus-visible:outline-blue-600"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -195,7 +196,7 @@ export default function StaffOverviewPage() {
                 Kế hoạch chế biến{date === today() ? " hôm nay" : ""}
               </h2>
               <Link
-                to="/dashboard/cooking/tracking"
+                to={withDate('/dashboard/cooking/tracking', date)}
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
                 Xem chế biến →
@@ -212,7 +213,7 @@ export default function StaffOverviewPage() {
                 return (
                   <Link
                     key={batch.id}
-                    to={`/dashboard/kitchen/tasks?type=batch&id=${batch.id}`}
+                    to={withDate(`/dashboard/kitchen/tasks?type=batch&id=${batch.id}`, date)}
                     className="block rounded-xl border border-slate-200 p-5 transition hover:border-blue-300"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -260,7 +261,7 @@ export default function StaffOverviewPage() {
                 Đơn căn tin trong ngày
               </h2>
               <Link
-                to="/dashboard/cooking/tickets"
+                to={withDate('/dashboard/cooking/tickets', date)}
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
                 Xem đơn căn tin →
@@ -270,7 +271,7 @@ export default function StaffOverviewPage() {
               {(data.tickets || []).map((ticket) => (
                 <Link
                   key={ticket.id}
-                  to={`/dashboard/kitchen/tasks?type=ticket&id=${ticket.id}`}
+                  to={withDate(`/dashboard/kitchen/tasks?type=ticket&id=${ticket.id}`, date)}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-5 hover:border-blue-300"
                 >
                   <div>
@@ -316,7 +317,7 @@ export default function StaffOverviewPage() {
               {data.shortages.map((line) => (
                 <Link
                   key={line.productId}
-                  to="/dashboard/materials/consumption"
+                  to={withDate('/dashboard/materials/consumption', date)}
                   className="flex items-center gap-4 rounded-2xl border border-red-100 bg-white p-5 shadow-sm hover:bg-red-50"
                 >
                   <AlertTriangle size={22} className="shrink-0 text-red-500" />
@@ -336,7 +337,7 @@ export default function StaffOverviewPage() {
               ))}
               {data.missingSampleCount > 0 && (
                 <Link
-                  to="/dashboard/samples/manage"
+                  to={withDate('/dashboard/samples/manage', date)}
                   className="flex items-center gap-4 rounded-2xl border border-orange-100 bg-white p-5 shadow-sm hover:bg-orange-50"
                 >
                   <ClipboardList

@@ -12,6 +12,7 @@ import { useKitchenData } from "../../hooks/useKitchenData";
 import { useAuth } from "../../auth/authContext";
 import { today } from "./portalHelpers";
 import { Field, ImageField, PageFrame, Table, buttonClass } from "./PortalUI";
+import { routeDate } from "./routeFilters";
 
 const statuses = {
   WAITING: "Chờ nhận",
@@ -48,7 +49,15 @@ export default function TaskWorkflowPage({ preset = "" }) {
   const [search, setSearch] = useSearchParams();
   const type = search.get("type") || preset;
   const id = search.get("id") || "";
-  const [date, setDate] = useState(today);
+  const date = routeDate(search, today());
+  const status = search.get('status') || '';
+  const changeListFilter = (key, value) => setSearch((previous) => {
+    const next = new URLSearchParams(previous);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    next.delete('id');
+    return next;
+  });
   const [notificationError, setNotificationError] = useState("");
   const selected = Boolean(id && ["batch", "ticket"].includes(type));
   const list = useKitchenData(
@@ -57,7 +66,9 @@ export default function TaskWorkflowPage({ preset = "" }) {
     !selected,
   );
   const detail = useKitchenData(`/kitchen/tasks/${type}/${id}`, {}, selected);
-  const rows = Array.isArray(list.data) ? list.data : [];
+  const allRows = Array.isArray(list.data) ? list.data : [];
+  const allowedStatuses = status.split(',').filter((value) => Object.hasOwn(statuses, value));
+  const rows = allRows.filter((row) => !allowedStatuses.length || allowedStatuses.includes(row.status));
   if (selected)
     return (
       <PageFrame
@@ -67,7 +78,12 @@ export default function TaskWorkflowPage({ preset = "" }) {
       >
         <button
           className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600"
-          onClick={() => setSearch({})}
+          onClick={() => setSearch((previous) => {
+            const next = new URLSearchParams(previous);
+            next.delete('id');
+            next.delete('type');
+            return next;
+          })}
         >
           <ArrowLeft size={16} />
           Danh sách nhiệm vụ
@@ -119,14 +135,25 @@ export default function TaskWorkflowPage({ preset = "" }) {
       description="Mở nhiệm vụ để xem công thức, nhận nguyên liệu, chế biến và bàn giao. Nhấn Làm mới để nhận danh sách mới nhất."
       state={list}
     >
-      <div className="grid gap-4 rounded-2xl bg-white p-5 sm:grid-cols-[1fr_2fr]">
+      <div className="grid gap-4 rounded-2xl bg-white p-5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr]">
         <Field
           label="Ngày nhiệm vụ"
           type="date"
           value={date}
           onChange={(value) => {
-            if (value) setDate(value);
+            if (value) changeListFilter('date', value);
           }}
+        />
+        <Field
+          label="Trạng thái"
+          required={false}
+          placeholder="Tất cả trạng thái"
+          value={allowedStatuses.length ? status : ''}
+          options={[
+            ...Object.entries(statuses).map(([id, name]) => ({ id, name })),
+            { id: 'COMPLETED,HANDED_OVER', name: 'Đã hoàn thành / bàn giao' },
+          ]}
+          onChange={(value) => changeListFilter('status', value)}
         />
         <div className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-blue-700">
           <Bell size={22} />
@@ -170,7 +197,13 @@ export default function TaskWorkflowPage({ preset = "" }) {
         actions={(row) => (
           <button
             className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-600"
-            onClick={() => setSearch({ type: row.type, id: row.id })}
+            onClick={() => setSearch((previous) => {
+              const next = new URLSearchParams(previous);
+              next.set('date', date);
+              next.set('type', row.type);
+              next.set('id', row.id);
+              return next;
+            })}
           >
             Xem nhiệm vụ
           </button>

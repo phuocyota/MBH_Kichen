@@ -1,6 +1,8 @@
 import { localInput, summaryLabels } from './portalHelpers'
 import { defaultQuery } from './portalHelpers'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { routeDate } from './routeFilters'
 import { api } from '../../api/kitchenApi'
 import { useAuth } from '../../auth/authContext'
 import { useKitchenData, useKitchenChoices } from '../../hooks/useKitchenData'
@@ -39,10 +41,11 @@ const labels = {
   COMPLETED: 'Hoàn tất',
 }
 export function DocumentPage({ kind, historyOnly = false }) {
+  const [search] = useSearchParams()
   const { branchId, manager, session } = useAuth()
   const menuEditor =
     manager || (kind === 'menus' && ['KITCHEN', 'HEAD_CHEF'].includes(session.userType))
-  const [query, setQuery] = useState(defaultQuery),
+  const [query, setQuery] = useState(() => ({ ...defaultQuery(), date: routeDate(search, today()) })),
     [dialog, setDialog] = useState(null),
     [actionError, setActionError] = useState(''),
     [busy, setBusy] = useState(false)

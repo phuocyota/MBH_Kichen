@@ -16,6 +16,7 @@ export function Field({
   min,
   step,
   disabled,
+  placeholder = 'Chọn…',
 }) {
   return (
     <label className="grid gap-1 text-sm font-semibold text-slate-700">
@@ -35,7 +36,7 @@ export function Field({
             )
           }
         >
-          {!multiple && <option value="">Chọn…</option>}
+          {!multiple && <option value="">{placeholder}</option>}
           {options.map((o) => (
             <option key={o.id ?? o} value={o.id ?? o}>
               {o.name ?? o}

@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/authContext";
 import { useKitchenData } from "../../hooks/useKitchenData";
+import { withDate } from "./routeFilters";
 
 const mealNames = {
   BREAKFAST: "Bữa sáng",
@@ -64,7 +65,7 @@ export default function BoardingPlanNotice({ date }) {
             <p className="mt-2 text-xs text-blue-700">Admin đã lập kế hoạch. Bếp trưởng cần tiếp nhận để tạo mẻ chế biến.</p>
           </div>
           <Link
-            to={`/dashboard/kitchen-plan/boarding?date=${encodeURIComponent(plan.planDate)}`}
+            to={withDate('/dashboard/kitchen-plan/boarding', plan.planDate, { mealPeriod: plan.mealPeriod })}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             aria-label={`Xem kế hoạch ${mealNames[plan.mealPeriod] || plan.mealPeriod} ngày ${plan.planDate}`}
           >
